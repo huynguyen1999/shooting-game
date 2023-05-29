@@ -13,6 +13,7 @@ import { Player } from '../../entities';
 import * as gameUtils from '../../utils';
 import { PlayerJoinDto } from './dtos/player-join.dto';
 import { PlayerInputDto } from './dtos';
+import { InputHandlerService } from './services';
 
 @WebSocketGateway({ cors: true })
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -23,12 +24,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private players: Record<string, Player> = {};
   private last_processed_input: Record<string, number> = {};
 
-  constructor() {
-    this.setUpdateRate(1);
+  constructor(private input_handler: InputHandlerService) {
+    this.setUpdateRate(0.5);
   }
   handleConnection(client: any, ...args: any[]) {
     this.server.emit(EVENTS.ENVIRONMENT_LOAD, {
       ...GAME_ENVIRONMENT,
+      client_id: client.id,
     });
   }
   handleDisconnect(client: any) {
@@ -63,7 +65,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   update() {
-    this.processInputs();
+    this.input_handler.processInputs();
     this.sendGameState();
   }
   private sendGameState() {
@@ -76,35 +78,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       last_processed_input: this.last_processed_input,
     });
   }
-  private processInputs() {}
 
   @SubscribeMessage(EVENTS.PLAYER_INPUT)
   async handlePlayerInput(
     @MessageBody() data: PlayerInputDto,
     @ConnectedSocket() client: any,
   ) {
-    console.log(data);
-    const clientId = client.id;
-    const { movement_key_map, dt_sec, input_sequence_number } = data;
-    if (!movement_key_map) {
-      return;
-    }
-    if (input_sequence_number) {
-      this.last_processed_input[clientId] = input_sequence_number;
-    }
-    const { up, down, left, right } = movement_key_map;
-    const player = this.players[clientId];
-    if (up) {
-      player.y -= player.speed * dt_sec;
-    }
-    if (down) {
-      player.y += player.speed * dt_sec;
-    }
-    if (left) {
-      player.x -= player.speed * dt_sec;
-    }
-    if (right) {
-      player.x += player.speed * dt_sec;
-    }
+    const player = this.players[client.id];
+    if (!player) return;
+    this.input_handler.handleInput(player, data);
   }
 }

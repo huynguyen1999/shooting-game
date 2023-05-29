@@ -1,4 +1,5 @@
 import { IPlayer, IState, StateMachine } from '../../abstracts';
+import { Direction } from '../../modules/game-controller/commands';
 import { DeadState } from './dead.state';
 import { IdleState } from './idle.state';
 import { MovingState } from './moving.state';
@@ -40,7 +41,39 @@ export class Player extends IPlayer {
     this.stateMachine.registerState(deadState.getStateKey(), deadState);
     this.stateMachine.changeState(idleState.getStateKey());
   }
-  move(): void {}
+  moveUp(deltaTime: number) {
+    this.y -= this.speed * deltaTime;
+  }
+  moveDown(deltaTime: number) {
+    this.y += this.speed * deltaTime;
+  }
+  moveLeft(deltaTime: number) {
+    this.x -= this.speed * deltaTime;
+  }
+  moveRight(deltaTime: number) {
+    this.x += this.speed * deltaTime;
+  }
+
+  move(direction: Direction, deltaTime: number) {
+    console.log('moving ', direction);
+    switch (direction) {
+      case Direction.UP:
+        this.moveUp(deltaTime);
+        break;
+      case Direction.DOWN:
+        this.moveDown(deltaTime);
+        break;
+      case Direction.LEFT:
+        this.moveLeft(deltaTime);
+        break;
+      case Direction.RIGHT:
+        this.moveRight(deltaTime);
+        break;
+      default:
+        break;
+    }
+  }
+  update(): void {}
 
   deserialize() {
     return {

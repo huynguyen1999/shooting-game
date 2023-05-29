@@ -12,7 +12,7 @@ export abstract class IState {
 
   public abstract onEnter(args: any): void;
 
-  public abstract onUpdate(): void;
+  public abstract onUpdate(deltaTime: number): void;
 
   public abstract onLeave(stateKey: string): void;
 
@@ -21,25 +21,24 @@ export abstract class IState {
 
 export class StateMachine {
   private static readonly InvalidState: string = 'Invalid';
-  private stateCache: Record<string, IState> = {};
-  private currentState: IState | null;
-  private lastState: IState | null;
-  private globalState: IState | null;
+  private states!: Map<string, IState>;
+  private current_state: IState | null = null;
   private owner: any;
+
+  private change_state_queue: IState[] = [];
+  private is_changing_state = false;
 
   constructor(owner: any) {
     this.owner = owner;
-    this.currentState = null;
-    this.lastState = null;
-    this.globalState = null;
+    this.states = new Map<string, IState>();
   }
 
   public isExist(stateKey: string): boolean {
-    return this.stateCache?.[stateKey] !== undefined;
+    return this.states.has(stateKey);
   }
 
   public getStateByKey(stateKey: string): IState | undefined {
-    return this.stateCache?.[stateKey];
+    return this.states.get(stateKey);
   }
 
   public setOwner(owner: any): StateMachine {
@@ -47,60 +46,62 @@ export class StateMachine {
     return this;
   }
 
-  public registerState(key: string, state: IState): void {
-    this.stateCache[key] = state;
-  }
-
-  public setGlobalState(state: IState, args: any = {}): StateMachine {
-    this.globalState = state;
-    this.globalState.setOwner(this.owner);
-    this.globalState.onEnter(args);
+  public registerState(key: string, state: IState): StateMachine {
+    this.states.set(key, state);
     return this;
   }
-
-  public removeState(id: number): void {
-    delete this.stateCache[id];
+  public removeState(key: string): void {
+    this.states.delete(key);
   }
 
   public changeState(key: string, args: any = {}): void {
-    const newState: IState | undefined = this.stateCache[key];
+    if (key === this.getCurrentState()) {
+      console.log('State has no change');
+      return;
+    }
+    const newState: IState | undefined = this.states.get(key);
     if (!newState) {
       console.error(`Unregistered state type: ${key}`);
       return;
     }
-
-    if (this.currentState) {
-      this.currentState.onLeave(newState.getStateKey());
+    if (this.is_changing_state) {
+      this.change_state_queue.push(newState);
+      return;
+    }
+    this.is_changing_state = true;
+    if (this.current_state) {
+      this.current_state.onLeave(newState.getStateKey());
     }
 
-    this.lastState = this.currentState;
-    this.currentState = newState;
-    this.currentState.setOwner(this.owner);
-    this.currentState.onEnter(args);
+    this.current_state = newState;
+    this.current_state.setOwner(this.owner);
+    this.current_state.onEnter(args);
+    this.is_changing_state = false;
   }
 
-  public update(): void {
-    if (this.globalState) {
-      this.globalState.onUpdate();
+  public update(deltaTime: number): void {
+    if (this.change_state_queue.length > 0) {
+      const pendingState = this.change_state_queue.shift() as IState;
+      this.changeState(pendingState.getStateKey());
+      return;
     }
-    if (this.currentState) {
-      this.currentState.onUpdate();
+    if (this.current_state && this.current_state.onUpdate) {
+      this.current_state.onUpdate(deltaTime);
     }
   }
 
   public getCurrentState(): string {
-    if (this.currentState) {
-      return this.currentState.getStateKey();
+    if (this.current_state) {
+      return this.current_state.getStateKey();
     }
     return StateMachine.InvalidState;
   }
 
   public clear(): void {
-    if (this.currentState) {
-      this.currentState.onLeave(StateMachine.InvalidState);
+    if (this.current_state) {
+      this.current_state.onLeave(StateMachine.InvalidState);
     }
-    this.stateCache = {};
-    this.currentState = null;
-    this.lastState = null;
+    this.states.clear();
+    this.current_state = null;
   }
 }
