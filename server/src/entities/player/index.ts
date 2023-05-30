@@ -1,5 +1,5 @@
 import { IPlayer, IState, StateMachine } from '../../abstracts';
-import { Direction } from '../../modules/game-controller/commands';
+import { Direction } from '../../modules/gateway/commands';
 import { DeadState } from './dead.state';
 import { IdleState } from './idle.state';
 import { MovingState } from './moving.state';

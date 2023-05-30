@@ -9,22 +9,19 @@ import {
 } from '@nestjs/websockets';
 import { Server } from 'http';
 import { EVENTS, GAME_ENVIRONMENT } from '../../constants';
-import { Player } from '../../entities';
-import * as gameUtils from '../../utils';
 import { PlayerJoinDto } from './dtos/player-join.dto';
 import { PlayerInputDto } from './dtos';
-import { InputHandlerService } from './services';
+import { Inject } from '@nestjs/common';
+import { GameManager } from '../game-manager/game-manager';
 
 @WebSocketGateway({ cors: true })
-export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   private server: Server;
   private update_rate: number;
   private update_interval: NodeJS.Timeout;
-  private players: Record<string, Player> = {};
-  private last_processed_input: Record<string, number> = {};
 
-  constructor(private input_handler: InputHandlerService) {
+  constructor(@Inject('GAME_MANAGER') private gameManager: GameManager) {
     this.setUpdateRate(0.5);
   }
   handleConnection(client: any, ...args: any[]) {
@@ -34,10 +31,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
   handleDisconnect(client: any) {
-    if (this.players?.[client.id]) {
-      delete this.players[client.id];
-      delete this.last_processed_input[client.id];
-    }
+    this.gameManager.handleDisconnect(client.id);
   }
 
   @SubscribeMessage(EVENTS.PLAYER_JOIN)
@@ -46,15 +40,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: PlayerJoinDto,
   ) {
     const { player_name: playerName } = data;
-    const joinedPlayer = new Player(
-      playerName,
-      Math.floor(Math.random() * GAME_ENVIRONMENT.canvas_width),
-      Math.floor(Math.random() * GAME_ENVIRONMENT.canvas_height),
-      10,
-      gameUtils.generateRandomColor(),
-      100,
-    );
-    this.players[client.id] = joinedPlayer;
+    this.gameManager.handlePlayerJoin(client.id, playerName);
   }
 
   setUpdateRate(updateRate: number) {
@@ -65,18 +51,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   update() {
-    this.input_handler.processInputs();
-    this.sendGameState();
-  }
-  private sendGameState() {
-    const deserializedPlayers = {};
-    for (const clientId in this.players) {
-      deserializedPlayers[clientId] = this.players[clientId].deserialize();
-    }
-    this.server.emit(EVENTS.GAME_UPDATE, {
-      players: deserializedPlayers,
-      last_processed_input: this.last_processed_input,
-    });
+    const gameState = this.gameManager.update();
+    this.server.emit(EVENTS.GAME_UPDATE, gameState);
   }
 
   @SubscribeMessage(EVENTS.PLAYER_INPUT)
@@ -84,8 +60,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: PlayerInputDto,
     @ConnectedSocket() client: any,
   ) {
-    const player = this.players[client.id];
-    if (!player) return;
-    this.input_handler.handleInput(player, data);
+    this.gameManager.handlePlayerInput(client.id, data);
   }
 }

@@ -1,2 +1,2 @@
-export * from './game-controller/game-controller.module';
-export * from './player-controller/player-controller.module';
+export * from './gateway/gateway.module';
+export * from './game-manager/game-manager.module';

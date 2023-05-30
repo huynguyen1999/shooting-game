@@ -1,5 +1,5 @@
 import { Player } from '../../../entities';
-import { ShootCommand, MoveCommand, ActivateSkillCommand } from '../commands';
+import { ShootCommand, MoveCommand, ActivateSkillCommand } from '../../gateway/commands';
 
 export class CommandFactory {
   static createCommand(receiver: Player, command: any) {
