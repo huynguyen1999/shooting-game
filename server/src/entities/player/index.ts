@@ -1,9 +1,13 @@
 import { IPlayer, IState, StateMachine } from '../../abstracts';
-import { Direction } from '../../modules/gateway/commands';
+import { Direction } from '../../constants';
+import { GameManager } from '../../modules/game-manager/game-manager';
+import { Bullet } from '../bullet';
 import { DeadState } from './dead.state';
 import { IdleState } from './idle.state';
 import { MovingState } from './moving.state';
+import { v4 as uuid } from 'uuid';
 export class Player extends IPlayer {
+  public client_id: string;
   public name: string;
   public x: number;
   public y: number;
@@ -11,9 +15,10 @@ export class Player extends IPlayer {
   public radius: number;
   public color: string;
   public speed: number;
-  public stateMachine!: StateMachine;
+  public state_machine!: StateMachine;
 
   constructor(
+    clientId: string,
     name: string,
     x: number,
     y: number,
@@ -22,6 +27,7 @@ export class Player extends IPlayer {
     speed: number,
   ) {
     super();
+    this.client_id = clientId;
     this.name = name;
     this.x = x;
     this.y = y;
@@ -32,14 +38,15 @@ export class Player extends IPlayer {
   }
 
   initializeStateMachine() {
-    this.stateMachine = new StateMachine(this);
+    this.state_machine = new StateMachine(this);
     const idleState = new IdleState();
     const movingState = new MovingState();
     const deadState = new DeadState();
-    this.stateMachine.registerState(idleState.getStateKey(), idleState);
-    this.stateMachine.registerState(movingState.getStateKey(), movingState);
-    this.stateMachine.registerState(deadState.getStateKey(), deadState);
-    this.stateMachine.changeState(idleState.getStateKey());
+    this.state_machine
+      .registerState(idleState.getStateKey(), idleState)
+      .registerState(movingState.getStateKey(), movingState)
+      .registerState(deadState.getStateKey(), deadState)
+      .changeState(idleState.getStateKey());
   }
   moveUp(deltaTime: number) {
     this.y -= this.speed * deltaTime;
@@ -55,7 +62,6 @@ export class Player extends IPlayer {
   }
 
   move(direction: Direction, deltaTime: number) {
-    console.log('moving ', direction);
     switch (direction) {
       case Direction.UP:
         this.moveUp(deltaTime);
@@ -73,17 +79,33 @@ export class Player extends IPlayer {
         break;
     }
   }
+  shoot(angle: number) {
+    const vx = Math.cos(angle),
+      vy = Math.sin(angle);
+    const bullet = new Bullet(
+      this.client_id,
+      this.x,
+      this.y,
+      this.radius / 3,
+      this.color,
+      this.speed * 5,
+      vx,
+      vy,
+    );
+    GameManager.addBullet(bullet);
+  }
   update(): void {}
 
   deserialize() {
     return {
+      client_id: this.client_id,
       name: this.name,
       x: this.x,
       y: this.y,
       radius: this.radius,
       color: this.color,
       speed: this.speed,
-      state: this.stateMachine.getCurrentState(),
+      state: this.state_machine.getCurrentState(),
     };
   }
 }

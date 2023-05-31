@@ -9,9 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server } from 'http';
 import { EVENTS, GAME_ENVIRONMENT } from '../../constants';
-import { PlayerJoinDto } from './dtos/player-join.dto';
-import { PlayerInputDto } from './dtos';
-import { Inject } from '@nestjs/common';
+import { PlayerInputDto, PlayerJoinDto } from './dtos';
 import { GameManager } from '../game-manager/game-manager';
 
 @WebSocketGateway({ cors: true })
@@ -21,8 +19,8 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
   private update_rate: number;
   private update_interval: NodeJS.Timeout;
 
-  constructor(@Inject('GAME_MANAGER') private gameManager: GameManager) {
-    this.setUpdateRate(0.5);
+  constructor() {
+    this.setUpdateRate(50);
   }
   handleConnection(client: any, ...args: any[]) {
     this.server.emit(EVENTS.ENVIRONMENT_LOAD, {
@@ -31,7 +29,7 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
   handleDisconnect(client: any) {
-    this.gameManager.handleDisconnect(client.id);
+    GameManager.handleDisconnect(client.id);
   }
 
   @SubscribeMessage(EVENTS.PLAYER_JOIN)
@@ -40,7 +38,7 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: PlayerJoinDto,
   ) {
     const { player_name: playerName } = data;
-    this.gameManager.handlePlayerJoin(client.id, playerName);
+    GameManager.handlePlayerJoin(client.id, playerName);
   }
 
   setUpdateRate(updateRate: number) {
@@ -51,7 +49,7 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   update() {
-    const gameState = this.gameManager.update();
+    const gameState = GameManager.update();
     this.server.emit(EVENTS.GAME_UPDATE, gameState);
   }
 
@@ -60,6 +58,6 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: PlayerInputDto,
     @ConnectedSocket() client: any,
   ) {
-    this.gameManager.handlePlayerInput(client.id, data);
+    GameManager.handlePlayerInput(client.id, data);
   }
 }

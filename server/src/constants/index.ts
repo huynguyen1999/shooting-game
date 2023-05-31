@@ -8,10 +8,17 @@ export const EVENTS = {
 };
 
 export const GAME_ENVIRONMENT = {
-  canvas_height: 400,
-  canvas_width: 600,
+  canvas_height: 500,
+  canvas_width: 700,
   canvas_styles: {
     border: '10px solid black',
     borderRadius: '20px',
   },
 };
+
+export enum Direction {
+  UP = 'up',
+  DOWN = 'down',
+  LEFT = 'left',
+  RIGHT = 'right',
+}

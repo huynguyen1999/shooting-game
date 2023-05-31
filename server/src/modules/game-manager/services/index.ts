@@ -1,2 +1,1 @@
-export * from './input-handler.service';
-export * from './input-handler.service';
+export * from './command-factory.service';
