@@ -3,22 +3,30 @@ import { Player } from "../../entities/player";
 
 export class ShootCommand extends Command {
     public receiver: Player;
-    public shoot_angle: number;
     public command_number: number;
-    constructor(receiver: Player, commandNumber: number, shootAngle: number) {
+    public dx: number;
+    public dy: number;
+    constructor(
+        receiver: Player,
+        commandNumber: number,
+        dx: number,
+        dy: number,
+    ) {
         super();
         this.receiver = receiver;
         this.command_number = commandNumber;
-        this.shoot_angle = shootAngle;
+        this.dx = dx;
+        this.dy = dy;
     }
     execute() {
-        this.receiver.shoot(this.shoot_angle);
+        // this.receiver.shoot(this.shoot_angle);
     }
-    static deserialize(command: ShootCommand) {
+    deserialize() {
         return {
             key: "shoot_command",
-            command_number: command.command_number,
-            shoot_angle: command.shoot_angle,
+            command_number: this.command_number,
+            dx: this.dx,
+            dy: this.dy,
         };
     }
 }

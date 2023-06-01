@@ -1,12 +1,14 @@
 import { IPlayer, IState, StateMachine } from "../../abstract";
-import { Client } from "../../client"
+import { Client } from "../../client";
 import { Direction } from "../../client/commands";
 import { Bullet } from "../bullet";
 import { DeadState } from "./dead.state";
 import { IdleState } from "./idle.state";
 import { MovingState } from "./moving.state";
+import { v4 as uuid } from "uuid";
 
 export class Player extends IPlayer {
+    public client_id: string;
     public state_machine!: StateMachine;
     public name: string;
     public x: number;
@@ -14,8 +16,10 @@ export class Player extends IPlayer {
     public radius: number;
     public color: string;
     public speed: number;
+    public last_processed_command!: number;
     public position_buffer: any[] = [];
     constructor(
+        clientId: string,
         name: string,
         x: number,
         y: number,
@@ -24,6 +28,7 @@ export class Player extends IPlayer {
         speed: number,
     ) {
         super();
+        this.client_id = clientId;
         this.name = name;
         this.x = x;
         this.y = y;
@@ -79,6 +84,8 @@ export class Player extends IPlayer {
         const vx = Math.cos(angle),
             vy = Math.sin(angle);
         const bullet = new Bullet(
+            uuid(),
+            this.client_id,
             this.x,
             this.y,
             this.radius / 3,
@@ -107,5 +114,10 @@ export class Player extends IPlayer {
             this.x,
             this.y + offsetY,
         );
+    }
+
+    static serialize(backendPlayer: any) {
+        const { _id, name, x, y, radius, color, speed } = backendPlayer;
+        return new Player(_id, name, x, y, radius, color, speed);
     }
 }

@@ -8,13 +8,13 @@ import { Bullet } from '../../entities/bullet';
 
 export class GameManager {
   private players: Map<string, Player>;
-  private bullets: Map<string, Bullet[]>;
+  private bullets: Map<string, Bullet>;
   private commands: Command[] = [];
   private static instance: GameManager;
   private last_frame_time!: number;
   private constructor() {
     this.players = new Map<string, Player>();
-    this.bullets = new Map<string, Bullet[]>();
+    this.bullets = new Map<string, Bullet>();
   }
 
   static getInstance() {
@@ -48,21 +48,30 @@ export class GameManager {
     const gameManager = GameManager.getInstance();
     const player = gameManager.players.get(clientId);
     if (!player) return;
+    // validate if input is already processed
+    const commands = gameManager.commands;
     const command = CommandFactory.createCommand(player, data);
-    gameManager.commands.push(command);
+    // @ts-ignore
+    const lastProcessedCommandNumber: number = commands.at(-1)?.command_number;
+    const isCommandProcessed =
+      command.command_number <= lastProcessedCommandNumber;
+    if (isCommandProcessed) {
+      return;
+    }
+    //
+    commands.push(command);
   }
 
   private getGameState() {
+    // send json data
     const players = {},
       bullets = {};
 
     this.players.forEach((player) => {
       players[player.client_id] = player.deserialize();
     });
-    this.bullets.forEach((playerBullets: Bullet[], key: string) => {
-      bullets[key] = playerBullets.map((bullet: Bullet) =>
-        bullet.deserialize(),
-      );
+    this.bullets.forEach((bullet: Bullet, key: string) => {
+      bullets[key] = bullet.deserialize();
     });
     return { players, bullets };
   }
@@ -75,14 +84,14 @@ export class GameManager {
     gameManager.last_frame_time = now;
     // handle input
     while (gameManager.commands.length > 0) {
-      const command = gameManager.commands.shift() as Command;
+      const command = gameManager.commands.shift() as any;
       command.execute();
+      command.receiver.last_processed_command = command.command_number;
     }
     // update players and bullets state
     gameManager.players.forEach((player) => player.update());
-    gameManager.bullets.forEach((playerBullets) => {
-      playerBullets.forEach((bullet) => bullet.update(deltaTime));
-    });
+    gameManager.bullets.forEach((bullet) => bullet.update(deltaTime));
+
     // get game state
     return gameManager.getGameState();
   }
@@ -91,19 +100,16 @@ export class GameManager {
     const clientId = bullet.client_id;
     const player = gameManager.players.get(clientId);
     if (!player) return;
-    if (!gameManager.bullets.get(clientId)) {
-      gameManager.bullets.set(clientId, []);
-    }
-    gameManager.bullets.get(clientId).push(bullet);
+    gameManager.bullets.set(bullet._id, bullet);
   }
   static removeBullet(bullet: Bullet) {
     const gameManager = GameManager.getInstance();
-    const clientId = bullet.client_id;
-    const playerBullets = gameManager.bullets.get(clientId);
-    if (!playerBullets) return;
-    const bulletIndex = playerBullets.indexOf(bullet);
-    if (bulletIndex > -1) {
-      playerBullets.splice(bulletIndex, 1);
-    }
+    const bullets = gameManager.bullets;
+    bullets.delete(bullet._id);
+  }
+
+  static getPlayers() {
+    const gameManager = GameManager.getInstance();
+    return gameManager.players;
   }
 }

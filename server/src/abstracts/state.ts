@@ -56,7 +56,6 @@ export class StateMachine {
 
   public changeState(key: string, args: any = {}): void {
     if (key === this.getCurrentState()) {
-      console.log('State has no change');
       return;
     }
     const newState: IState | undefined = this.states.get(key);

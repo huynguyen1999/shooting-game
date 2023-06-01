@@ -27,12 +27,12 @@ export class MoveCommand extends Command {
     execute() {
         this.receiver.move(this.direction, this.delta_time);
     }
-    static deserialize(command: MoveCommand) {
+    deserialize() {
         return {
             key: "move_command",
-            command_number: command.command_number,
-            direction: command.direction,
-            delta_time: command.delta_time,
+            command_number: this.command_number,
+            direction: this.direction,
+            delta_time: this.delta_time,
         };
     }
 }

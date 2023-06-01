@@ -20,7 +20,7 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
   private update_interval: NodeJS.Timeout;
 
   constructor() {
-    this.setUpdateRate(50);
+    this.setUpdateRate(10);
   }
   handleConnection(client: any, ...args: any[]) {
     this.server.emit(EVENTS.ENVIRONMENT_LOAD, {

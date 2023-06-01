@@ -16,6 +16,8 @@ export class Player extends IPlayer {
   public color: string;
   public speed: number;
   public state_machine!: StateMachine;
+  public last_processed_command: number;
+  public hp: number;
 
   constructor(
     clientId: string,
@@ -34,7 +36,9 @@ export class Player extends IPlayer {
     this.radius = radius;
     this.color = color;
     this.speed = speed;
+    this.last_processed_command = 0;
     this.initializeStateMachine();
+    this.hp = 10;
   }
 
   initializeStateMachine() {
@@ -95,7 +99,14 @@ export class Player extends IPlayer {
     GameManager.addBullet(bullet);
   }
   update(): void {}
-
+  onHit() {
+    this.hp -= 1;
+    if (this.hp <= 0) {
+      console.log('player dead');
+      this.hp = 0;
+      return;
+    }
+  }
   deserialize() {
     return {
       client_id: this.client_id,
@@ -106,6 +117,7 @@ export class Player extends IPlayer {
       color: this.color,
       speed: this.speed,
       state: this.state_machine.getCurrentState(),
+      last_processed_command: this.last_processed_command,
     };
   }
 }

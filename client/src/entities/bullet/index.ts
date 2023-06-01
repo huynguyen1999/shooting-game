@@ -1,8 +1,9 @@
 import { IBullet, StateMachine } from "../../abstract";
 import { DestroyedState } from "./destroyed.state";
 import { MovingState } from "./moving.state";
-
 export class Bullet extends IBullet {
+    public client_id: string;
+    public _id: string;
     public state_machine!: StateMachine;
     public x: number;
     public y: number;
@@ -13,6 +14,8 @@ export class Bullet extends IBullet {
     public vx: number;
     public vy: number;
     constructor(
+        _id: string,
+        clientId: string,
         x: number,
         y: number,
         radius: number,
@@ -22,6 +25,8 @@ export class Bullet extends IBullet {
         vy: number,
     ) {
         super();
+        this._id = _id;
+        this.client_id = clientId;
         this.x = x;
         this.y = y;
         this.radius = radius;
@@ -45,10 +50,15 @@ export class Bullet extends IBullet {
         this.y += this.vy * deltaTime * this.speed;
     }
     draw(context: CanvasRenderingContext2D) {
-        console.log("draw bullet");
         context.beginPath();
         context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         context.fillStyle = "black";
         context.fill();
+    }
+
+    static serialize(bulletData: any) {
+        const { _id, client_id, x, y, radius, color, speed, vx, vy, state } =
+            bulletData;
+        return new Bullet(_id, client_id, x, y, radius, color, speed, vx, vy);
     }
 }

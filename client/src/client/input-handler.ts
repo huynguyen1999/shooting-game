@@ -8,7 +8,8 @@ export class InputHandler {
     private current_command_number: number;
     private receiver!: Player;
     private commands: Command[];
-    constructor() {
+    public unacknowledged_commands: Command[];
+    constructor(private canvas: HTMLCanvasElement) {
         this.movement_key_map = {
             up: false,
             down: false,
@@ -17,10 +18,10 @@ export class InputHandler {
         };
         this.current_command_number = 0;
         this.commands = [];
-        // this.receiver = receiver;
+        this.unacknowledged_commands = [];
         addEventListener("keydown", this.onKeyDown.bind(this));
         addEventListener("keyup", this.onKeyUp.bind(this));
-        addEventListener("click", this.onClick.bind(this));
+        this.canvas.addEventListener("click", this.onClick.bind(this));
     }
 
     setReceiver(receiver: Player) {
@@ -67,18 +68,14 @@ export class InputHandler {
         if (!this.receiver) {
             return;
         }
-        const shootAngle = Math.atan2(
-            event.offsetY - this.receiver.y,
-            event.offsetX - this.receiver.x,
-        );
         const shootCommand = new ShootCommand(
             this.receiver,
             this.current_command_number++,
-            shootAngle,
+            event.offsetX,
+            event.offsetY,
         );
         shootCommand.execute();
         this.commands.push(shootCommand);
-        Network.sendPlayerInput(ShootCommand.deserialize(shootCommand));
     }
 
     move(direction: Direction, deltaTime: number) {
@@ -93,7 +90,6 @@ export class InputHandler {
         );
         moveCommand.execute();
         this.commands.push(moveCommand);
-        Network.sendPlayerInput(MoveCommand.deserialize(moveCommand));
     }
 
     update(deltaTime: number) {
@@ -112,6 +108,11 @@ export class InputHandler {
         }
         if (right) {
             this.move(Direction.RIGHT, deltaTime);
+        }
+        while (this.commands.length > 0) {
+            const command = this.commands.shift() as Command;
+            Network.sendPlayerInput(command.deserialize());
+            this.unacknowledged_commands.push(command);
         }
     }
 }

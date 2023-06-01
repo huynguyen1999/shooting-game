@@ -9,7 +9,7 @@ export class Network {
     public static instance: Network;
     private constructor() {
         this.messages = [];
-        this.socket = io("http://localhost:3000");
+        this.socket = io("http://192.168.69.59:3000");
         this.socket.on(
             EVENTS.ENVIRONMENT_LOAD,
             this.onReceiveEnvironmentLoad.bind(this),

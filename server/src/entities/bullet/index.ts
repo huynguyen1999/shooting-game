@@ -1,6 +1,7 @@
 import { IBullet, StateMachine } from '../../abstracts';
 import { GAME_ENVIRONMENT } from '../../constants';
-import { GameManager } from "../../modules/game-manager/game-manager"
+import { GameManager } from '../../modules/game-manager/game-manager';
+import { getDistance } from '../../utils';
 import { DestroyedState } from './destroyed.state';
 import { MovingState } from './moving.state';
 import { v4 as uuid } from 'uuid';
@@ -48,21 +49,44 @@ export class Bullet extends IBullet {
       .registerState(destroyedState.getStateKey(), destroyedState)
       .changeState(movingState.getStateKey());
   }
-  update(deltaTime: number) {
-    this.x += this.vx * deltaTime * this.speed;
-    this.y += this.vy * deltaTime * this.speed;
-    if (
+
+  private isOutOfWorld() {
+    return (
       this.x < 0 ||
       this.x > GAME_ENVIRONMENT.canvas_width ||
       this.y < 0 ||
       this.y > GAME_ENVIRONMENT.canvas_height
-    ) {
+    );
+  }
+
+  private handleCollision() {
+    const players = GameManager.getPlayers();
+    players.forEach((player) => {
+      if (player.client_id === this.client_id) return;
+      const distance = getDistance(this, player);
+      const collisionDistance = this.radius + player.radius;
+      if (distance <= collisionDistance) {
+        GameManager.removeBullet(this);
+        // notify player on hit
+        player.onHit();
+      }
+    });
+  }
+  update(deltaTime: number) {
+    this.x += this.vx * deltaTime * this.speed;
+    this.y += this.vy * deltaTime * this.speed;
+
+    // out of bound
+    if (this.isOutOfWorld()) {
       GameManager.removeBullet(this);
     }
+    // handle collision
+    this.handleCollision();
   }
 
   deserialize() {
     return {
+      _id: this._id,
       client_id: this.client_id,
       x: this.x,
       y: this.y,
