@@ -1,6 +1,7 @@
 import { IPlayer, IState, StateMachine } from '../../abstracts';
 import { Direction } from '../../constants';
 import { GameManager } from '../../modules/game-manager/game-manager';
+import { getDistance } from '../../utils';
 import { Bullet } from '../bullet';
 import { DeadState } from './dead.state';
 import { IdleState } from './idle.state';
@@ -27,6 +28,7 @@ export class Player extends IPlayer {
     radius: number,
     color: string,
     speed: number,
+    hp: number = 10,
   ) {
     super();
     this.client_id = clientId;
@@ -38,7 +40,7 @@ export class Player extends IPlayer {
     this.speed = speed;
     this.last_processed_command = 0;
     this.initializeStateMachine();
-    this.hp = 10;
+    this.hp = hp;
   }
 
   initializeStateMachine() {
@@ -52,19 +54,31 @@ export class Player extends IPlayer {
       .registerState(deadState.getStateKey(), deadState)
       .changeState(idleState.getStateKey());
   }
-  moveUp(deltaTime: number) {
+  private moveUp(deltaTime: number) {
     this.y -= this.speed * deltaTime;
   }
-  moveDown(deltaTime: number) {
+  private moveDown(deltaTime: number) {
     this.y += this.speed * deltaTime;
   }
-  moveLeft(deltaTime: number) {
+  private moveLeft(deltaTime: number) {
     this.x -= this.speed * deltaTime;
   }
-  moveRight(deltaTime: number) {
+  private moveRight(deltaTime: number) {
     this.x += this.speed * deltaTime;
   }
 
+  private handleCollision() {
+    const players = GameManager.getPlayers();
+    players.forEach((player) => {
+      if (player.client_id === this.client_id) return;
+      const distance = getDistance(this, player);
+      const collisionDistance = this.radius + player.radius;
+      if (distance < collisionDistance) {
+        this.state_machine.changeState('idle_player');
+        player.onCollide();
+      }
+    });
+  }
   move(direction: Direction, deltaTime: number) {
     switch (direction) {
       case Direction.UP:
@@ -82,11 +96,13 @@ export class Player extends IPlayer {
       default:
         break;
     }
+    this.handleCollision();
   }
-  shoot(angle: number) {
+  shoot(_id: string, angle: number) {
     const vx = Math.cos(angle),
       vy = Math.sin(angle);
     const bullet = new Bullet(
+      _id,
       this.client_id,
       this.x,
       this.y,
@@ -102,10 +118,12 @@ export class Player extends IPlayer {
   onHit() {
     this.hp -= 1;
     if (this.hp <= 0) {
-      console.log('player dead');
       this.hp = 0;
       return;
     }
+  }
+  onCollide() {
+    this.state_machine.changeState('idle_player');
   }
   deserialize() {
     return {
@@ -118,6 +136,7 @@ export class Player extends IPlayer {
       speed: this.speed,
       state: this.state_machine.getCurrentState(),
       last_processed_command: this.last_processed_command,
+      hp: this.hp,
     };
   }
 }

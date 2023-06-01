@@ -48,17 +48,8 @@ export class GameManager {
     const gameManager = GameManager.getInstance();
     const player = gameManager.players.get(clientId);
     if (!player) return;
-    // validate if input is already processed
     const commands = gameManager.commands;
     const command = CommandFactory.createCommand(player, data);
-    // @ts-ignore
-    const lastProcessedCommandNumber: number = commands.at(-1)?.command_number;
-    const isCommandProcessed =
-      command.command_number <= lastProcessedCommandNumber;
-    if (isCommandProcessed) {
-      return;
-    }
-    //
     commands.push(command);
   }
 
@@ -80,7 +71,7 @@ export class GameManager {
     const gameManager = GameManager.getInstance();
     const now = Date.now();
     const lastFrameTime = gameManager.last_frame_time || now;
-    const deltaTime = (now - lastFrameTime) / 1000.0;
+    const deltaTime = (now - lastFrameTime) / 1000;
     gameManager.last_frame_time = now;
     // handle input
     while (gameManager.commands.length > 0) {

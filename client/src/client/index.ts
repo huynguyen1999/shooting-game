@@ -17,14 +17,14 @@ export class Client {
     public input_handler!: InputHandler;
     public static instance: Client;
     public last_frame_time!: number;
-    private constructor(updateRate = 50) {
+    private constructor() {
         this.players = new Map<string, Player>();
         this.bullets = new Map<string, Bullet>();
         this.canvas = document.querySelector("canvas") as HTMLCanvasElement;
         this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
         this.input_handler = new InputHandler(this.canvas);
         this.createNewPlayer();
-        this.setUpdateRate(updateRate);
+        this.setUpdateRate();
     }
 
     public static getInstance() {
@@ -40,7 +40,7 @@ export class Client {
             Network.sendNewPlayer(playerName);
         }
     }
-    public setUpdateRate(updateRate: number) {
+    public setUpdateRate(updateRate: number = 60) {
         this.update_rate = updateRate;
         clearInterval(this.update_interval);
         const frameDeltaTime = 1000 / updateRate;
@@ -51,13 +51,20 @@ export class Client {
         const client = Client.getInstance();
         client.bullets.set(bullet._id, bullet);
     }
+    public static getPlayers() {
+        return Client.getInstance().players;
+    }
+    public static removeBullet(bullet: Bullet) {
+        const bullets = Client.getInstance().bullets;
+        bullets.delete(bullet._id);
+    }
     public update() {
         const now = Date.now();
         const lastFrameTime = this.last_frame_time || now;
-        const deltaTime = (now - lastFrameTime) / 1000.0;
+        const deltaTime = (now - lastFrameTime) / 1000;
         this.last_frame_time = now;
         this.processServerMessages();
-        const renderTimestamp = now - 1000.0 / 10;
+        const renderTimestamp = now - 1000 / 20;
         this.input_handler.update(deltaTime);
         //
         this.interpolatePlayers(renderTimestamp);
@@ -82,23 +89,32 @@ export class Client {
             this.bullets.delete(bulletId);
         });
     }
-
+    private syncWithBackendBullets(
+        _id: string,
+        backendBullet: Record<string, any>,
+    ) {
+        if (!this.bullets.has(_id)) {
+            const newBullet = Bullet.serialize(backendBullet);
+            this.bullets.set(_id, newBullet);
+        }
+        const clientBullet = this.bullets.get(_id) as Bullet;
+        // synchronize
+        clientBullet.x = backendBullet.x;
+        clientBullet.y = backendBullet.y;
+        return clientBullet;
+    }
     private processAuthoritativeBullets(backendBullets: Record<string, any>) {
+        this.removeDestroyedBullets(backendBullets);
         for (const _id in backendBullets) {
             const backendBullet = backendBullets[_id];
-            if (!this.bullets.has(_id)) {
-                const newBullet = Bullet.serialize(backendBullet);
-                this.bullets.set(_id, newBullet);
-            }
-            const clientBullet = this.bullets.get(_id);
-            if (!clientBullet) {
-                console.log("no client bullet");
+            const clientBullet = this.syncWithBackendBullets(
+                _id,
+                backendBullet,
+            );
+
+            if (clientBullet.client_id === this.client_id) {
                 continue;
             }
-            // synchronize
-            clientBullet.x = backendBullet.x;
-            clientBullet.y = backendBullet.y;
-
             const timestamp = Date.now();
             clientBullet.position_buffer.push({
                 timestamp,
@@ -106,48 +122,61 @@ export class Client {
                 y: backendBullet.y,
             });
         }
-        this.removeDestroyedBullets(backendBullets);
+    }
+
+    private syncWithBackendPlayer(
+        clientId: string,
+        backendPlayer: Record<string, any>,
+    ) {
+        const {
+            client_id,
+            x,
+            y,
+            color,
+            radius,
+            name,
+            speed,
+            state,
+            hp,
+            last_processed_command,
+        } = backendPlayer;
+        if (!this.players.has(clientId)) {
+            const newPlayer = new Player(
+                client_id,
+                name,
+                x,
+                y,
+                radius,
+                color,
+                speed,
+                hp,
+            );
+            this.players.set(clientId, newPlayer);
+            // set receiver as the current client
+            if (clientId === this.client_id) {
+                this.input_handler.setReceiver(newPlayer);
+            }
+        }
+        const clientPlayer = this.players.get(clientId) as Player;
+        clientPlayer.x = x;
+        clientPlayer.y = y;
+        clientPlayer.hp = hp;
+        clientPlayer.last_processed_command = last_processed_command;
+        clientPlayer.state_machine.changeState(state);
+        return clientPlayer;
     }
     private processAuthoritativePlayers(backendPlayers: Record<string, any>) {
         this.removeDisconnectedPlayers(backendPlayers);
         for (const clientId in backendPlayers) {
             const backendPlayer = backendPlayers[clientId];
-            const {
-                client_id,
-                x,
-                y,
-                color,
-                radius,
-                name,
-                speed,
-                state,
-                last_processed_command,
-            } = backendPlayer;
-            if (!this.players.has(clientId)) {
-                const newPlayer = new Player(
-                    client_id,
-                    name,
-                    x,
-                    y,
-                    radius,
-                    color,
-                    speed,
-                );
-                this.players.set(clientId, newPlayer);
-                this.input_handler.setReceiver(newPlayer);
-            }
-            // sync client with server
-            const clientPlayer = this.players.get(clientId) as Player;
-            clientPlayer.x = backendPlayer.x;
-            clientPlayer.y = backendPlayer.y;
-            clientPlayer.last_processed_command = last_processed_command;
-            clientPlayer.state_machine.changeState(state);
-            // this client player
+
+            const clientPlayer = this.syncWithBackendPlayer(
+                clientId,
+                backendPlayer,
+            );
             if (clientId === this.client_id) {
-                // server reconciliation
                 this.reconciliatePlayerFromServer(clientPlayer);
             } else {
-                // other client's player
                 const timestamp = Date.now();
                 clientPlayer.position_buffer.push({
                     timestamp,
@@ -228,6 +257,9 @@ export class Client {
     public renderWorld(deltaTime: number) {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.players.forEach((player: Player) => player.draw(this.context));
-        this.bullets.forEach((bullet: Bullet) => bullet.draw(this.context));
+        this.bullets.forEach((bullet: Bullet) => {
+            bullet.update(deltaTime);
+            bullet.draw(this.context);
+        });
     }
 }

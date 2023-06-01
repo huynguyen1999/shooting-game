@@ -18,6 +18,8 @@ export class Player extends IPlayer {
     public speed: number;
     public last_processed_command!: number;
     public position_buffer: any[] = [];
+    public hp: number;
+    public max_hp: number;
     constructor(
         clientId: string,
         name: string,
@@ -26,6 +28,7 @@ export class Player extends IPlayer {
         radius: number,
         color: string,
         speed: number,
+        hp: number,
     ) {
         super();
         this.client_id = clientId;
@@ -35,6 +38,8 @@ export class Player extends IPlayer {
         this.radius = radius;
         this.color = color;
         this.speed = speed;
+        this.hp = hp;
+        this.max_hp = hp;
         this.initiateStateMachine();
     }
     initiateStateMachine() {
@@ -98,26 +103,35 @@ export class Player extends IPlayer {
     }
 
     draw(context: CanvasRenderingContext2D): void {
-        const offsetY = this.radius + 5;
+        const offsetY = this.radius * 2;
         // draw circle
         context.beginPath();
         context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         (context.fillStyle = this.color), context.fill();
+
+        // draw hp bar
+        const centerBarX = this.x;
+        const centerBarY = this.y - offsetY;
+        const barWidth = this.radius * 4;
+        const barHeight = this.radius;
+        const topLeftX = centerBarX - barWidth / 2;
+        const topLeftY = centerBarY - barHeight / 2;
+        context.beginPath();
+        context.rect(topLeftX, topLeftY, barWidth, barHeight);
+        context.stroke();
+        const hpRatio = this.hp / this.max_hp;
+        const barWidthRatio = hpRatio * barWidth;
+        context.fillStyle = "red";
+        context.fillRect(topLeftX, topLeftY, barWidthRatio, barHeight);
         // draw name
         context.textAlign = "center";
         context.font = `${Math.floor(this.radius / 2)}px Arial";`;
         context.fillStyle = "black";
-        context.fillText(this.name, this.x, this.y - offsetY);
-        // draw state
-        context.fillText(
-            this.state_machine.getCurrentState(),
-            this.x,
-            this.y + offsetY,
-        );
+        context.fillText(this.name, this.x, this.y + offsetY);
     }
 
     static serialize(backendPlayer: any) {
-        const { _id, name, x, y, radius, color, speed } = backendPlayer;
-        return new Player(_id, name, x, y, radius, color, speed);
+        const { _id, name, x, y, radius, color, speed, hp } = backendPlayer;
+        return new Player(_id, name, x, y, radius, color, speed, hp);
     }
 }

@@ -1,4 +1,7 @@
 import { IBullet, StateMachine } from "../../abstract";
+import { Client } from "../../client";
+import { getDistance } from "../../utils";
+import { Player } from "../player";
 import { DestroyedState } from "./destroyed.state";
 import { MovingState } from "./moving.state";
 export class Bullet extends IBullet {
@@ -45,9 +48,22 @@ export class Bullet extends IBullet {
             .registerState(destroyedState.getStateKey(), destroyedState)
             .changeState(movingState.getStateKey());
     }
+
+    private handleCollision() {
+        const players = Client.getPlayers();
+        players.forEach((player: Player) => {
+            if (player.client_id === this.client_id) return;
+            const distance = getDistance(this, player);
+            const collisionDistance = this.radius + player.radius;
+            if (distance <= collisionDistance) {
+                Client.removeBullet(this);
+            }
+        });
+    }
     update(deltaTime: number) {
         this.x += this.vx * deltaTime * this.speed;
         this.y += this.vy * deltaTime * this.speed;
+        this.handleCollision();
     }
     draw(context: CanvasRenderingContext2D) {
         context.beginPath();

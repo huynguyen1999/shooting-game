@@ -20,7 +20,7 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
   private update_interval: NodeJS.Timeout;
 
   constructor() {
-    this.setUpdateRate(10);
+    this.setUpdateRate();
   }
   handleConnection(client: any, ...args: any[]) {
     this.server.emit(EVENTS.ENVIRONMENT_LOAD, {
@@ -41,7 +41,7 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
     GameManager.handlePlayerJoin(client.id, playerName);
   }
 
-  setUpdateRate(updateRate: number) {
+  setUpdateRate(updateRate: number = 20) {
     this.update_rate = updateRate;
     clearInterval(this.update_interval);
     const updateTick = 1000 / this.update_rate;

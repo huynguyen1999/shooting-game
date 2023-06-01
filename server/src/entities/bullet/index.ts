@@ -19,6 +19,7 @@ export class Bullet extends IBullet {
   public vx: number;
   public vy: number;
   constructor(
+    _id: string,
     clientId: string,
     x: number,
     y: number,
@@ -29,7 +30,7 @@ export class Bullet extends IBullet {
     vy: number,
   ) {
     super();
-    this._id = uuid();
+    this._id = _id;
     this.client_id = clientId;
     this.x = x;
     this.y = y;

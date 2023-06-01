@@ -1,12 +1,20 @@
 import { Command } from '../../../abstracts';
 import { Player } from '../../../entities';
 export class ShootCommand extends Command {
+  public _id: string;
   public receiver: Player;
   public command_number: number;
   public dx: number;
   public dy: number;
-  constructor(receiver: Player, commandNumber: number, dx: number, dy: number) {
+  constructor(
+    _id: string,
+    receiver: Player,
+    commandNumber: number,
+    dx: number,
+    dy: number,
+  ) {
     super();
+    this._id = _id;
     this.receiver = receiver;
     this.command_number = commandNumber;
     this.dx = dx;
@@ -17,6 +25,6 @@ export class ShootCommand extends Command {
       this.dy - this.receiver.y,
       this.dx - this.receiver.x,
     );
-    this.receiver.shoot(shootAngle);
+    this.receiver.shoot(this._id, shootAngle);
   }
 }

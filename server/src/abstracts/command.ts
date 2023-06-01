@@ -1,5 +1,5 @@
 import { IPlayer } from './player';
 
 export abstract class Command {
-  abstract execute(): void;
+  abstract execute(...args: any): void;
 }
