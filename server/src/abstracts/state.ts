@@ -29,6 +29,7 @@ export class StateMachine {
   private change_state_queue: IState[] = [];
   private is_changing_state = false;
   private last_state_change_time: number;
+  private default_state: IState | null = null;
 
   constructor(owner: any) {
     this.owner = owner;
@@ -42,6 +43,10 @@ export class StateMachine {
 
   public getStateByKey(stateKey: string): IState | undefined {
     return this.states.get(stateKey);
+  }
+  public setDefaultState(stateKey: string) {
+    this.default_state = this.states.get(stateKey);
+    return this;
   }
 
   public setOwner(owner: any): StateMachine {
@@ -57,6 +62,12 @@ export class StateMachine {
     this.states.delete(key);
   }
 
+  public switchToDefault() {
+    this.current_state = this.default_state;
+    this.last_state_change_time = Date.now();
+    this.current_state.setOwner(this.owner);
+  }
+
   public changeState(key: string, args: any = {}): void {
     const newState: IState | undefined = this.states.get(key);
     if (!newState) {
@@ -67,14 +78,14 @@ export class StateMachine {
     // if state has cooldown
     const currentTime = Date.now();
     const elapsedTime = currentTime - this.last_state_change_time;
-    const cooldownTime = this.current_state?.getCoolDownTime() || 0;
-    if (elapsedTime < cooldownTime) {
+    const coolDownTime = this.current_state?.getCoolDownTime();
+
+    if (coolDownTime && elapsedTime < coolDownTime) {
       console.log(
         `cooldown in progress, cannot switch to ${newState.getStateKey()} yet!`,
       );
       return;
     }
-
     if (this.is_changing_state) {
       this.change_state_queue.push(newState);
       return;
@@ -96,11 +107,15 @@ export class StateMachine {
   }
 
   public update(deltaTime: number): void {
+    if (this.current_state.getCoolDownTime() !== 0) {
+      this.switchToDefault();
+    }
     if (!this.is_changing_state && this.change_state_queue.length > 0) {
       const pendingState = this.change_state_queue.shift() as IState;
       this.changeState(pendingState.getStateKey());
       return;
     }
+
     if (this.current_state && this.current_state.onUpdate) {
       this.current_state.onUpdate(deltaTime);
     }

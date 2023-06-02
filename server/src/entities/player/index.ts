@@ -55,6 +55,7 @@ export class Player extends IPlayer {
       .registerState(movingState.getStateKey(), movingState)
       .registerState(deadState.getStateKey(), deadState)
       .registerState(shootingState.getStateKey(), shootingState)
+      .setDefaultState(idleState.getStateKey())
       .changeState(idleState.getStateKey());
   }
   move(direction: Direction, deltaTime: number) {
