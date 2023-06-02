@@ -53,12 +53,11 @@ export class Bullet extends IBullet {
     private handleCollision() {
         const players = Client.getPlayers();
         players.forEach((player: Player) => {
-            if (
-                player.client_id === this.client_id ||
+            const isSelf = player.client_id === this.client_id;
+            const isDead =
                 player.state_machine.getCurrentStateKey() ===
-                    STATE_KEYS.PLAYER.DEAD
-            )
-                return;
+                STATE_KEYS.PLAYER.DEAD;
+            if (isSelf || isDead) return;
             const distance = getDistance(this, player);
             const collisionDistance = this.radius + player.radius;
             if (distance <= collisionDistance) {

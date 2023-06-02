@@ -55,6 +55,7 @@ export class Player extends IPlayer {
             .registerState(movingState.getStateKey(), movingState)
             .registerState(deadState.getStateKey(), deadState)
             .registerState(shootingState.getStateKey(), shootingState)
+            .setDefaultState(idleState.getStateKey())
             .changeState(idleState.getStateKey());
     }
 
@@ -72,13 +73,11 @@ export class Player extends IPlayer {
     onCollide() {}
 
     draw(context: CanvasRenderingContext2D): void {
+        context.globalAlpha = 1;
+        const state = this.state_machine.getCurrentState() as IState;
+        state?.draw(context);
         const offsetY = this.radius * 2;
         // draw circle
-        if (
-            this.state_machine.getCurrentStateKey() === STATE_KEYS.PLAYER.DEAD
-        ) {
-            context.globalAlpha = 0.5;
-        } else context.globalAlpha = 1;
         context.beginPath();
         context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         (context.fillStyle = this.color), context.fill();
@@ -102,8 +101,6 @@ export class Player extends IPlayer {
         context.fillStyle = "red";
         context.fillRect(topLeftX, topLeftY, barWidthRatio, barHeight);
         //
-        const state = this.state_machine.getCurrentState() as IState;
-        state.draw(context);
     }
 
     static serialize(backendPlayer: any) {

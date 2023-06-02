@@ -52,7 +52,10 @@ export class MovingState extends IState {
     const players = GameManager.getPlayers();
     let isCollided = false;
     for (const player of players.values()) {
-      if (player.client_id === this.owner.client_id) continue;
+      const isSelf = player.client_id === this.owner.client_id;
+      const isDead =
+        player.state_machine.getCurrentStateKey() === STATE_KEYS.PLAYER.DEAD;
+      if (isSelf || isDead) continue;
       const distance = getDistance(newPosition, player);
       const collisionDistance = this.owner.radius + player.radius;
       if (distance < collisionDistance) {

@@ -26,6 +26,7 @@ export class StateMachine {
     private static readonly InvalidState: string = "Invalid";
     private states!: Map<string, IState>;
     private current_state: IState | null = null;
+    private default_state: IState | null = null;
     private owner: any;
 
     private change_state_queue: IState[] = [];
@@ -45,6 +46,10 @@ export class StateMachine {
     public getStateByKey(stateKey: string): IState | undefined {
         return this.states.get(stateKey);
     }
+    public setDefaultState(stateKey: string) {
+        this.default_state = this.states.get(stateKey) as IState;
+        return this;
+    }
 
     public setOwner(owner: any): StateMachine {
         this.owner = owner;
@@ -58,7 +63,11 @@ export class StateMachine {
     public removeState(key: string): void {
         this.states.delete(key);
     }
-
+    public switchToDefault() {
+        this.current_state = this.default_state;
+        this.last_state_change_time = Date.now();
+        this.current_state?.setOwner(this.owner);
+    }
     public changeState(key: string, args: any = {}): void {
         const newState: IState | undefined = this.states.get(key);
         if (!newState) {
@@ -67,8 +76,8 @@ export class StateMachine {
         }
         const currentTime = Date.now();
         const elapsedTime = currentTime - this.last_state_change_time;
-        const cooldownTime = this.current_state?.getCoolDownTime() || 0;
-        if (elapsedTime < cooldownTime) {
+        const coolDownTime = this.current_state?.getCoolDownTime();
+        if (coolDownTime && elapsedTime < coolDownTime) {
             console.log(
                 `cooldown in progress, cannot switch to ${newState.getStateKey()} yet!`,
             );
@@ -95,7 +104,10 @@ export class StateMachine {
     }
 
     public update(deltaTime: number): void {
-        if (this.change_state_queue.length > 0) {
+        if (this.current_state?.getCoolDownTime() !== 0) {
+            this.switchToDefault();
+        }
+        if (!this.is_changing_state && this.change_state_queue.length > 0) {
             const pendingState = this.change_state_queue.shift() as IState;
             this.changeState(pendingState.getStateKey());
             return;

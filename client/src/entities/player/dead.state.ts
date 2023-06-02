@@ -20,7 +20,9 @@ export class DeadState extends IState {
     public getStateKey(): string {
         return STATE_KEYS.PLAYER.DEAD;
     }
-    public draw(context: CanvasRenderingContext2D) {}
+    public draw(context: CanvasRenderingContext2D) {
+        context.globalAlpha = 0.5;
+    }
     public getCoolDownTime(): number {
         return 0;
     }

@@ -1,12 +1,10 @@
 import { IPlayer, IState, StateMachine } from '../../abstracts';
 import { Direction, STATE_KEYS } from '../../constants';
 import { GameManager } from '../../modules/game-manager/game-manager';
-import { getDistance } from '../../utils';
-import { Bullet } from '../bullet';
+
 import { DeadState } from './dead.state';
 import { IdleState } from './idle.state';
 import { MovingState } from './moving.state';
-import { v4 as uuid } from 'uuid';
 import { ShootingState } from './shooting.state';
 export class Player extends IPlayer {
   public client_id: string;
