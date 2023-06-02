@@ -256,7 +256,10 @@ export class Client {
     }
     public renderWorld(deltaTime: number) {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.players.forEach((player: Player) => player.draw(this.context));
+        this.players.forEach((player: Player) => {
+            player.update(deltaTime);
+            player.draw(this.context);
+        });
         this.bullets.forEach((bullet: Bullet) => {
             bullet.update(deltaTime);
             bullet.draw(this.context);

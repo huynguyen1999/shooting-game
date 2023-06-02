@@ -19,4 +19,8 @@ export class DeadState extends IState {
   public getStateKey(): string {
     return STATE_KEYS.PLAYER.DEAD;
   }
+
+  public getCoolDownTime(): number {
+    return 0;
+  }
 }

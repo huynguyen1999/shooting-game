@@ -1,11 +1,13 @@
 import { IPlayer, IState, StateMachine } from "../../abstract";
 import { Client } from "../../client";
 import { Direction } from "../../client/commands";
+import { STATE_KEYS } from "../../constants";
 import { Bullet } from "../bullet";
 import { DeadState } from "./dead.state";
 import { IdleState } from "./idle.state";
 import { MovingState } from "./moving.state";
 import { v4 as uuid } from "uuid";
+import { ShootingState } from "./shooting.state";
 
 export class Player extends IPlayer {
     public client_id: string;
@@ -47,68 +49,44 @@ export class Player extends IPlayer {
         const idleState = new IdleState();
         const movingState = new MovingState();
         const deadState = new DeadState();
+        const shootingState = new ShootingState();
         this.state_machine
             .registerState(idleState.getStateKey(), idleState)
             .registerState(movingState.getStateKey(), movingState)
             .registerState(deadState.getStateKey(), deadState)
+            .registerState(shootingState.getStateKey(), shootingState)
             .changeState(idleState.getStateKey());
     }
 
-    moveUp(deltaTime: number) {
-        this.y -= this.speed * deltaTime;
-    }
-    moveDown(deltaTime: number) {
-        this.y += this.speed * deltaTime;
-    }
-    moveLeft(deltaTime: number) {
-        this.x -= this.speed * deltaTime;
-    }
-    moveRight(deltaTime: number) {
-        this.x += this.speed * deltaTime;
-    }
-
     move(direction: Direction, deltaTime: number) {
-        switch (direction) {
-            case Direction.UP:
-                this.moveUp(deltaTime);
-                break;
-            case Direction.DOWN:
-                this.moveDown(deltaTime);
-                break;
-            case Direction.LEFT:
-                this.moveLeft(deltaTime);
-                break;
-            case Direction.RIGHT:
-                this.moveRight(deltaTime);
-                break;
-            default:
-                break;
-        }
+        this.changeState(STATE_KEYS.PLAYER.MOVING, {
+            direction,
+            deltaTime,
+        });
     }
     shoot(angle: number) {
-        const vx = Math.cos(angle),
-            vy = Math.sin(angle);
-        const bullet = new Bullet(
-            uuid(),
-            this.client_id,
-            this.x,
-            this.y,
-            this.radius / 3,
-            this.color,
-            this.speed * 5,
-            vx,
-            vy,
-        );
-        Client.addBullet(bullet);
+        this.changeState(STATE_KEYS.PLAYER.SHOOTING, {
+            angle,
+        });
     }
+    onCollide() {}
 
     draw(context: CanvasRenderingContext2D): void {
         const offsetY = this.radius * 2;
         // draw circle
+        if (
+            this.state_machine.getCurrentStateKey() === STATE_KEYS.PLAYER.DEAD
+        ) {
+            context.globalAlpha = 0.5;
+        } else context.globalAlpha = 1;
         context.beginPath();
         context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         (context.fillStyle = this.color), context.fill();
-
+        // draw name
+        context.textAlign = "center";
+        context.font = `${Math.floor(this.radius / 2)}px Arial";`;
+        context.fillStyle = "black";
+        context.fillText(`${this.name}`, this.x, this.y + offsetY);
         // draw hp bar
         const centerBarX = this.x;
         const centerBarY = this.y - offsetY;
@@ -123,15 +101,25 @@ export class Player extends IPlayer {
         const barWidthRatio = hpRatio * barWidth;
         context.fillStyle = "red";
         context.fillRect(topLeftX, topLeftY, barWidthRatio, barHeight);
-        // draw name
-        context.textAlign = "center";
-        context.font = `${Math.floor(this.radius / 2)}px Arial";`;
-        context.fillStyle = "black";
-        context.fillText(this.name, this.x, this.y + offsetY);
+        //
+        const state = this.state_machine.getCurrentState() as IState;
+        state.draw(context);
     }
 
     static serialize(backendPlayer: any) {
         const { _id, name, x, y, radius, color, speed, hp } = backendPlayer;
         return new Player(_id, name, x, y, radius, color, speed, hp);
+    }
+    update(deltaTime: number) {
+        this.state_machine.update(deltaTime);
+    }
+    changeState(key: string, args: any = {}) {
+        const currentState = this.state_machine.getCurrentStateKey();
+        const isAlreadyDead = currentState === STATE_KEYS.PLAYER.DEAD;
+        if (isAlreadyDead) {
+            console.log("Player already dead");
+            return;
+        }
+        this.state_machine.changeState(key, args);
     }
 }

@@ -18,4 +18,7 @@ export class MovingState extends IState {
   public getStateKey(): string {
     return 'moving_bullet';
   }
+  public getCoolDownTime(): number {
+    return 0;
+  }
 }

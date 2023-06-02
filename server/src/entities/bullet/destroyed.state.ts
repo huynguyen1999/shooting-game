@@ -18,4 +18,7 @@ export class DestroyedState extends IState {
   public getStateKey(): string {
     return 'destroyed_bullet';
   }
+  public getCoolDownTime(): number {
+    return 0;
+  }
 }

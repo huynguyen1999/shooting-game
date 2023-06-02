@@ -1,7 +1,8 @@
+import { IState } from "../../abstract";
 import { Direction } from "../../client/commands";
-import { PlayerState } from "./player.state";
+import { STATE_KEYS } from "../../constants";
 
-export class DeadState extends PlayerState {
+export class DeadState extends IState {
     public getOwner(): any {
         return this.owner;
     }
@@ -17,9 +18,10 @@ export class DeadState extends PlayerState {
 
     public onLeave(stateKey: string): void {}
     public getStateKey(): string {
-        return "dead_player";
+        return STATE_KEYS.PLAYER.DEAD;
     }
-    public move(direction: Direction, deltaTime: number): void {}
-    public shoot() {}
     public draw(context: CanvasRenderingContext2D) {}
+    public getCoolDownTime(): number {
+        return 0;
+    }
 }

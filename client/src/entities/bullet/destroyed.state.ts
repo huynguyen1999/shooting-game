@@ -1,10 +1,10 @@
-import { BulletState } from "./bullet.state";
+import { IState } from "../../abstract";
 
-export class DestroyedState extends BulletState {
+export class DestroyedState extends IState {
     public getOwner(): any {
         return this.owner;
     }
-    public setOwner(owner: any): BulletState {
+    public setOwner(owner: any): DestroyedState {
         this.owner = owner;
         return this;
     }
@@ -19,4 +19,7 @@ export class DestroyedState extends BulletState {
         return "destroyed_bullet";
     }
     public draw(context: CanvasRenderingContext2D) {}
+    public getCoolDownTime(): number {
+        return 0;
+    }
 }

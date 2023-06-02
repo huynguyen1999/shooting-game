@@ -101,6 +101,5 @@ export class Player extends IPlayer {
       return;
     }
     this.state_machine.changeState(key, args);
-    console.log('current state: ', this.state_machine.getCurrentStateKey());
   }
 }

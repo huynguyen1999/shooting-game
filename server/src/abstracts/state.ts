@@ -17,6 +17,7 @@ export abstract class IState {
   public abstract onLeave(stateKey: string): void;
 
   public abstract getStateKey(): string;
+  public abstract getCoolDownTime(): number;
 }
 
 export class StateMachine {
@@ -27,10 +28,12 @@ export class StateMachine {
 
   private change_state_queue: IState[] = [];
   private is_changing_state = false;
+  private last_state_change_time: number;
 
   constructor(owner: any) {
     this.owner = owner;
     this.states = new Map<string, IState>();
+    this.last_state_change_time = Date.now();
   }
 
   public isExist(stateKey: string): boolean {
@@ -60,6 +63,18 @@ export class StateMachine {
       console.error(`Unregistered state type: ${key}`);
       return;
     }
+
+    // if state has cooldown
+    const currentTime = Date.now();
+    const elapsedTime = currentTime - this.last_state_change_time;
+    const cooldownTime = this.current_state?.getCoolDownTime() || 0;
+    if (elapsedTime < cooldownTime) {
+      console.log(
+        `cooldown in progress, cannot switch to ${newState.getStateKey()} yet!`,
+      );
+      return;
+    }
+
     if (this.is_changing_state) {
       this.change_state_queue.push(newState);
       return;
@@ -72,15 +87,16 @@ export class StateMachine {
     if (this.current_state) {
       this.current_state.onLeave(newState.getStateKey());
     }
-
+    console.log('new state: ', newState.getStateKey());
     this.current_state = newState;
+    this.last_state_change_time = Date.now();
     this.current_state.setOwner(this.owner);
     this.current_state.onEnter(args);
     this.is_changing_state = false;
   }
 
   public update(deltaTime: number): void {
-    if (this.change_state_queue.length > 0) {
+    if (!this.is_changing_state && this.change_state_queue.length > 0) {
       const pendingState = this.change_state_queue.shift() as IState;
       this.changeState(pendingState.getStateKey());
       return;

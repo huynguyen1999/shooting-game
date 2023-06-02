@@ -1,5 +1,6 @@
 import { IBullet, StateMachine } from "../../abstract";
 import { Client } from "../../client";
+import { STATE_KEYS } from "../../constants";
 import { getDistance } from "../../utils";
 import { Player } from "../player";
 import { DestroyedState } from "./destroyed.state";
@@ -52,7 +53,12 @@ export class Bullet extends IBullet {
     private handleCollision() {
         const players = Client.getPlayers();
         players.forEach((player: Player) => {
-            if (player.client_id === this.client_id) return;
+            if (
+                player.client_id === this.client_id ||
+                player.state_machine.getCurrentStateKey() ===
+                    STATE_KEYS.PLAYER.DEAD
+            )
+                return;
             const distance = getDistance(this, player);
             const collisionDistance = this.radius + player.radius;
             if (distance <= collisionDistance) {

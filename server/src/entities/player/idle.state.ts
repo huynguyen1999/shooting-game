@@ -19,4 +19,8 @@ export class IdleState extends IState {
   public getStateKey(): string {
     return STATE_KEYS.PLAYER.IDLE;
   }
+
+  public getCoolDownTime(): number {
+    return 0;
+  }
 }

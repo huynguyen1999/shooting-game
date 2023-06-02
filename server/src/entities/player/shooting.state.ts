@@ -41,4 +41,7 @@ export class ShootingState extends IState {
     );
     GameManager.addBullet(bullet);
   }
+  public getCoolDownTime(): number {
+    return 200;
+  }
 }

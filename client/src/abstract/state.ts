@@ -18,6 +18,8 @@ export abstract class IState {
 
     public abstract getStateKey(): string;
     public abstract draw(context: CanvasRenderingContext2D): void;
+
+    public abstract getCoolDownTime(): number;
 }
 
 export class StateMachine {
@@ -29,9 +31,11 @@ export class StateMachine {
     private change_state_queue: IState[] = [];
     private is_changing_state = false;
 
+    private last_state_change_time: number;
     constructor(owner: any) {
         this.owner = owner;
         this.states = new Map<string, IState>();
+        this.last_state_change_time = Date.now();
     }
 
     public isExist(stateKey: string): boolean {
@@ -56,16 +60,26 @@ export class StateMachine {
     }
 
     public changeState(key: string, args: any = {}): void {
-        if (key === this.getCurrentState()) {
-            return;
-        }
         const newState: IState | undefined = this.states.get(key);
         if (!newState) {
             console.error(`Unregistered state type: ${key}`);
             return;
         }
+        const currentTime = Date.now();
+        const elapsedTime = currentTime - this.last_state_change_time;
+        const cooldownTime = this.current_state?.getCoolDownTime() || 0;
+        if (elapsedTime < cooldownTime) {
+            console.log(
+                `cooldown in progress, cannot switch to ${newState.getStateKey()} yet!`,
+            );
+            return;
+        }
         if (this.is_changing_state) {
             this.change_state_queue.push(newState);
+            return;
+        }
+        if (key === this.getCurrentStateKey()) {
+            this.current_state?.onEnter(args);
             return;
         }
         this.is_changing_state = true;
@@ -74,6 +88,7 @@ export class StateMachine {
         }
 
         this.current_state = newState;
+        this.last_state_change_time = Date.now();
         this.current_state.setOwner(this.owner);
         this.current_state.onEnter(args);
         this.is_changing_state = false;
@@ -90,13 +105,15 @@ export class StateMachine {
         }
     }
 
-    public getCurrentState(): string {
+    public getCurrentState(): IState | null {
+        return this.current_state;
+    }
+    public getCurrentStateKey(): string {
         if (this.current_state) {
             return this.current_state.getStateKey();
         }
         return StateMachine.InvalidState;
     }
-
     public clear(): void {
         if (this.current_state) {
             this.current_state.onLeave(StateMachine.InvalidState);

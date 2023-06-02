@@ -92,4 +92,7 @@ export class MovingState extends IState {
       this.owner.changeState(STATE_KEYS.PLAYER.IDLE);
     }
   }
+  getCoolDownTime() {
+    return 0;
+  }
 }
