@@ -1,6 +1,6 @@
-import { BulletState } from './bullet.state';
+import { IState } from '../../abstracts';
 
-export class MovingState extends BulletState {
+export class MovingState extends IState {
   public getOwner(): any {
     return this.owner;
   }
@@ -18,5 +18,4 @@ export class MovingState extends BulletState {
   public getStateKey(): string {
     return 'moving_bullet';
   }
-  public draw(context: CanvasRenderingContext2D) {}
 }

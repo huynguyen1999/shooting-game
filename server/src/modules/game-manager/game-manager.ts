@@ -68,23 +68,27 @@ export class GameManager {
   }
 
   static update() {
-    const gameManager = GameManager.getInstance();
-    const now = Date.now();
-    const lastFrameTime = gameManager.last_frame_time || now;
-    const deltaTime = (now - lastFrameTime) / 1000;
-    gameManager.last_frame_time = now;
-    // handle input
-    while (gameManager.commands.length > 0) {
-      const command = gameManager.commands.shift() as any;
-      command.execute();
-      command.receiver.last_processed_command = command.command_number;
-    }
-    // update players and bullets state
-    gameManager.players.forEach((player) => player.update());
-    gameManager.bullets.forEach((bullet) => bullet.update(deltaTime));
+    try {
+      const gameManager = GameManager.getInstance();
+      const now = Date.now();
+      const lastFrameTime = gameManager.last_frame_time || now;
+      const deltaTime = (now - lastFrameTime) / 1000;
+      gameManager.last_frame_time = now;
+      // handle input
+      while (gameManager.commands.length > 0) {
+        const command = gameManager.commands.shift() as any;
+        command.execute();
+        command.receiver.last_processed_command = command.command_number;
+      }
+      // update players and bullets state
+      gameManager.players.forEach((player) => player.update(deltaTime));
+      gameManager.bullets.forEach((bullet) => bullet.update(deltaTime));
 
-    // get game state
-    return gameManager.getGameState();
+      // get game state
+      return gameManager.getGameState();
+    } catch (e) {
+      console.log('wtf: ', e);
+    }
   }
   static addBullet(bullet: Bullet) {
     const gameManager = GameManager.getInstance();
@@ -98,7 +102,11 @@ export class GameManager {
     const bullets = gameManager.bullets;
     bullets.delete(bullet._id);
   }
-
+  static removePlayer(player: Player) {
+    const gameManager = GameManager.getInstance();
+    const players = gameManager.players;
+    players.delete(player.client_id);
+  }
   static getPlayers() {
     const gameManager = GameManager.getInstance();
     return gameManager.players;

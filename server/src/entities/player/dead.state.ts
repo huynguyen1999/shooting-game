@@ -1,4 +1,5 @@
 import { IState } from '../../abstracts';
+import { STATE_KEYS } from '../../constants';
 
 export class DeadState extends IState {
   public getOwner(): any {
@@ -16,6 +17,6 @@ export class DeadState extends IState {
 
   public onLeave(stateKey: string): void {}
   public getStateKey(): string {
-    return 'dead_player';
+    return STATE_KEYS.PLAYER.DEAD;
   }
 }

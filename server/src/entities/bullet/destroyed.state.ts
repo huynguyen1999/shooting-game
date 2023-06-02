@@ -1,10 +1,10 @@
-import { BulletState } from './bullet.state';
+import { IState } from '../../abstracts';
 
-export class DestroyedState extends BulletState {
+export class DestroyedState extends IState {
   public getOwner(): any {
     return this.owner;
   }
-  public setOwner(owner: any): BulletState {
+  public setOwner(owner: any): DestroyedState {
     this.owner = owner;
     return this;
   }

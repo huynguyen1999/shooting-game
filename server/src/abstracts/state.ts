@@ -55,9 +55,6 @@ export class StateMachine {
   }
 
   public changeState(key: string, args: any = {}): void {
-    if (key === this.getCurrentState()) {
-      return;
-    }
     const newState: IState | undefined = this.states.get(key);
     if (!newState) {
       console.error(`Unregistered state type: ${key}`);
@@ -65,6 +62,10 @@ export class StateMachine {
     }
     if (this.is_changing_state) {
       this.change_state_queue.push(newState);
+      return;
+    }
+    if (key === this.getCurrentStateKey()) {
+      this.current_state.onEnter(args);
       return;
     }
     this.is_changing_state = true;
@@ -89,11 +90,14 @@ export class StateMachine {
     }
   }
 
-  public getCurrentState(): string {
+  public getCurrentStateKey(): string {
     if (this.current_state) {
       return this.current_state.getStateKey();
     }
     return StateMachine.InvalidState;
+  }
+  public getCurrentState(): IState | null {
+    return this.current_state;
   }
 
   public clear(): void {

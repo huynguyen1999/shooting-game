@@ -37,11 +37,15 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: any,
     @MessageBody() data: PlayerJoinDto,
   ) {
-    const { player_name: playerName } = data;
-    GameManager.handlePlayerJoin(client.id, playerName);
+    try {
+      const { player_name: playerName } = data;
+      GameManager.handlePlayerJoin(client.id, playerName);
+    } catch (exception) {
+      console.log('player input exception: ', exception);
+    }
   }
 
-  setUpdateRate(updateRate: number = 20) {
+  setUpdateRate(updateRate: number = 60) {
     this.update_rate = updateRate;
     clearInterval(this.update_interval);
     const updateTick = 1000 / this.update_rate;
@@ -49,8 +53,12 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   update() {
-    const gameState = GameManager.update();
-    this.server.emit(EVENTS.GAME_UPDATE, gameState);
+    try {
+      const gameState = GameManager.update();
+      this.server.emit(EVENTS.GAME_UPDATE, gameState);
+    } catch (exception) {
+      console.log('update gateway error: ', exception);
+    }
   }
 
   @SubscribeMessage(EVENTS.PLAYER_INPUT)

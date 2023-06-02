@@ -1,5 +1,5 @@
 import { IPlayer, IState, StateMachine } from '../../abstracts';
-import { Direction } from '../../constants';
+import { Direction, STATE_KEYS } from '../../constants';
 import { GameManager } from '../../modules/game-manager/game-manager';
 import { getDistance } from '../../utils';
 import { Bullet } from '../bullet';
@@ -7,6 +7,7 @@ import { DeadState } from './dead.state';
 import { IdleState } from './idle.state';
 import { MovingState } from './moving.state';
 import { v4 as uuid } from 'uuid';
+import { ShootingState } from './shooting.state';
 export class Player extends IPlayer {
   public client_id: string;
   public name: string;
@@ -48,82 +49,34 @@ export class Player extends IPlayer {
     const idleState = new IdleState();
     const movingState = new MovingState();
     const deadState = new DeadState();
+    const shootingState = new ShootingState();
     this.state_machine
       .registerState(idleState.getStateKey(), idleState)
       .registerState(movingState.getStateKey(), movingState)
       .registerState(deadState.getStateKey(), deadState)
+      .registerState(shootingState.getStateKey(), shootingState)
       .changeState(idleState.getStateKey());
   }
-  private moveUp(deltaTime: number) {
-    this.y -= this.speed * deltaTime;
-  }
-  private moveDown(deltaTime: number) {
-    this.y += this.speed * deltaTime;
-  }
-  private moveLeft(deltaTime: number) {
-    this.x -= this.speed * deltaTime;
-  }
-  private moveRight(deltaTime: number) {
-    this.x += this.speed * deltaTime;
+  move(direction: Direction, deltaTime: number) {
+    this.changeState(STATE_KEYS.PLAYER.MOVING, { direction, deltaTime });
   }
 
-  private handleCollision() {
-    const players = GameManager.getPlayers();
-    players.forEach((player) => {
-      if (player.client_id === this.client_id) return;
-      const distance = getDistance(this, player);
-      const collisionDistance = this.radius + player.radius;
-      if (distance < collisionDistance) {
-        this.state_machine.changeState('idle_player');
-        player.onCollide();
-      }
-    });
-  }
-  move(direction: Direction, deltaTime: number) {
-    switch (direction) {
-      case Direction.UP:
-        this.moveUp(deltaTime);
-        break;
-      case Direction.DOWN:
-        this.moveDown(deltaTime);
-        break;
-      case Direction.LEFT:
-        this.moveLeft(deltaTime);
-        break;
-      case Direction.RIGHT:
-        this.moveRight(deltaTime);
-        break;
-      default:
-        break;
-    }
-    this.handleCollision();
-  }
   shoot(_id: string, angle: number) {
-    const vx = Math.cos(angle),
-      vy = Math.sin(angle);
-    const bullet = new Bullet(
-      _id,
-      this.client_id,
-      this.x,
-      this.y,
-      this.radius / 3,
-      this.color,
-      this.speed * 5,
-      vx,
-      vy,
-    );
-    GameManager.addBullet(bullet);
+    this.changeState(STATE_KEYS.PLAYER.SHOOTING, { _id, angle });
   }
-  update(): void {}
+  update(deltaTime: number): void {
+    this.state_machine.update(deltaTime);
+  }
   onHit() {
     this.hp -= 1;
     if (this.hp <= 0) {
+      this.changeState(STATE_KEYS.PLAYER.DEAD);
+      setTimeout(() => GameManager.removePlayer(this), 1000);
       this.hp = 0;
-      return;
     }
   }
   onCollide() {
-    this.state_machine.changeState('idle_player');
+    this.changeState(STATE_KEYS.PLAYER.IDLE);
   }
   deserialize() {
     return {
@@ -134,9 +87,20 @@ export class Player extends IPlayer {
       radius: this.radius,
       color: this.color,
       speed: this.speed,
-      state: this.state_machine.getCurrentState(),
+      state: this.state_machine.getCurrentStateKey(),
       last_processed_command: this.last_processed_command,
       hp: this.hp,
     };
+  }
+
+  changeState(key: string, args: any = {}) {
+    const currentState = this.state_machine.getCurrentStateKey();
+    const isAlreadyDead = currentState === STATE_KEYS.PLAYER.DEAD;
+    if (isAlreadyDead) {
+      console.log('Player already dead');
+      return;
+    }
+    this.state_machine.changeState(key, args);
+    console.log('current state: ', this.state_machine.getCurrentStateKey());
   }
 }

@@ -1,5 +1,5 @@
 import { IBullet, StateMachine } from '../../abstracts';
-import { GAME_ENVIRONMENT } from '../../constants';
+import { GAME_ENVIRONMENT, STATE_KEYS } from '../../constants';
 import { GameManager } from '../../modules/game-manager/game-manager';
 import { getDistance } from '../../utils';
 import { DestroyedState } from './destroyed.state';
@@ -63,7 +63,11 @@ export class Bullet extends IBullet {
   private handleCollision() {
     const players = GameManager.getPlayers();
     players.forEach((player) => {
-      if (player.client_id === this.client_id) return;
+      if (
+        player.client_id === this.client_id ||
+        player.state_machine.getCurrentStateKey() === STATE_KEYS.PLAYER.DEAD
+      )
+        return;
       const distance = getDistance(this, player);
       const collisionDistance = this.radius + player.radius;
       if (distance <= collisionDistance) {
@@ -96,7 +100,7 @@ export class Bullet extends IBullet {
       speed: this.speed,
       vx: this.vx,
       vy: this.vy,
-      state: this.state_machine.getCurrentState(),
+      state: this.state_machine.getCurrentStateKey(),
     };
   }
 }
