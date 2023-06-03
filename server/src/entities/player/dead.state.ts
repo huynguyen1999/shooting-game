@@ -23,4 +23,8 @@ export class DeadState extends IState {
   public getCoolDownTime(): number {
     return 0;
   }
+
+  public isForced(): boolean {
+    return true;
+  }
 }

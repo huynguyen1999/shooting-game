@@ -45,6 +45,6 @@ export class ShootingState extends IState {
     }
     public draw(context: CanvasRenderingContext2D) {}
     public getCoolDownTime(): number {
-        return 200;
+        return 0;
     }
 }

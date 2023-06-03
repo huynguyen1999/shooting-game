@@ -25,13 +25,27 @@ export enum Direction {
 
 export const STATE_KEYS = {
   PLAYER: {
-      DEAD: "dead_player",
-      IDLE: "idle_player",
-      MOVING: "moving_player",
-      SHOOTING: "shooting_player",
+    DEAD: 'dead_player',
+    IDLE: 'idle_player',
+    MOVING: 'moving_player',
+    SHOOTING: 'shooting_player',
   },
   BULLET: {
-      MOVING: "moving_bullet",
-      DESTROYED: "destroyed_bullet",
+    MOVING: 'moving_bullet',
+    DESTROYED: 'destroyed_bullet',
+  },
+};
+
+export const COMMAND_KEYS = {
+  USER_INPUT: {
+    MOVE: 'move_command',
+    SHOOT: 'shoot_command',
+    ACTIVATE_SKILL: 'activate_skill_command',
+  },
+  BUFF: {
+    BULLET_SPEED_UP: 'bullet_speed_up_command',
+    DAMAGE_UP: 'damage_up_command',
+    SPEED_UP: 'speed_up_command',
+    HEAL: 'heal_command',
   },
 };

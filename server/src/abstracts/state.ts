@@ -18,6 +18,10 @@ export abstract class IState {
 
   public abstract getStateKey(): string;
   public abstract getCoolDownTime(): number;
+
+  public isForced() {
+    return false;
+  }
 }
 
 export class StateMachine {
@@ -67,7 +71,16 @@ export class StateMachine {
     this.last_state_change_time = Date.now();
     this.current_state.setOwner(this.owner);
   }
-
+  private forceChangeState(newState: IState, args: any = {}) {
+    if (this.current_state) {
+      this.current_state.onLeave(newState.getStateKey());
+    }
+    this.current_state = newState;
+    this.current_state.setOwner(this.owner);
+    this.current_state.onEnter(args);
+    this.change_state_queue = [];
+    this.is_changing_state = false;
+  }
   public changeState(key: string, args: any = {}): void {
     const newState: IState | undefined = this.states.get(key);
     if (!newState) {
@@ -75,6 +88,10 @@ export class StateMachine {
       return;
     }
 
+    if (newState.isForced()) {
+      this.forceChangeState(newState, args);
+      return;
+    }
     // if state has cooldown
     const currentTime = Date.now();
     const elapsedTime = currentTime - this.last_state_change_time;
@@ -108,7 +125,7 @@ export class StateMachine {
 
   public update(deltaTime: number): void {
     if (this.current_state.getCoolDownTime() !== 0) {
-      this.switchToDefault();
+      this.changeState(this.default_state.getStateKey());
     }
     if (!this.is_changing_state && this.change_state_queue.length > 0) {
       const pendingState = this.change_state_queue.shift() as IState;

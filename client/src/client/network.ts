@@ -1,10 +1,10 @@
 import { io, Socket } from "socket.io-client";
 import { EVENTS } from "../constants";
 import { EnvironmentLoadDto } from "../dtos/environment-load.dto";
-import { Client } from ".";
 export class Network {
     // contain authoritative data from the server
     public messages: any[];
+    public env_data: any;
     public socket!: Socket;
     public static instance: Network;
     private constructor() {
@@ -41,13 +41,9 @@ export class Network {
         this.messages.push(data);
     }
     private onReceiveEnvironmentLoad(data: EnvironmentLoadDto) {
-        const { canvas_height, canvas_width, canvas_styles, client_id } = data;
-        Client.getInstance().client_id = this.socket.id;
-        Client.getInstance().canvas.width = canvas_width;
-        Client.getInstance().canvas.height = canvas_height;
-        for (const style in canvas_styles) {
-            // @ts-ignore
-            Client.getInstance().canvas.style[style] = canvas_styles[style];
-        }
+        this.env_data = data;
+    }
+    public static getEnvData(): EnvironmentLoadDto {
+        return this.getInstance().env_data;
     }
 }

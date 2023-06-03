@@ -2,6 +2,8 @@ import { IBullet, StateMachine } from '../../abstracts';
 import { GAME_ENVIRONMENT, STATE_KEYS } from '../../constants';
 import { GameManager } from '../../modules/game-manager/game-manager';
 import { getDistance } from '../../utils';
+import { Obstacle } from '../obstacle';
+import { Player } from '../player';
 import { DestroyedState } from './destroyed.state';
 import { MovingState } from './moving.state';
 import { v4 as uuid } from 'uuid';
@@ -61,7 +63,21 @@ export class Bullet extends IBullet {
   }
 
   private handleCollision() {
-    const players = GameManager.getPlayers();
+    if (this.isOutOfWorld()) {
+      GameManager.removeBullet(this);
+      return;
+    }
+
+    const players = GameManager.getPlayers() as Map<string, Player>;
+    const obstacles = GameManager.getObstacles() as Map<string, Obstacle>;
+    for (const obstacle of obstacles.values()) {
+      const distance = getDistance(this, obstacle);
+      const collisionDistance = this.radius + obstacle.radius;
+      if (distance < collisionDistance) {
+        GameManager.removeBullet(this);
+        return;
+      }
+    }
     players.forEach((player) => {
       const isSelf = player.client_id === this.client_id;
       const isDead =
@@ -79,11 +95,6 @@ export class Bullet extends IBullet {
   update(deltaTime: number) {
     this.x += this.vx * deltaTime * this.speed;
     this.y += this.vy * deltaTime * this.speed;
-
-    // out of bound
-    if (this.isOutOfWorld()) {
-      GameManager.removeBullet(this);
-    }
     // handle collision
     this.handleCollision();
   }
