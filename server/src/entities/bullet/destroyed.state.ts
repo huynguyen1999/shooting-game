@@ -1,4 +1,5 @@
 import { IState } from '../../abstracts';
+import { STATE_KEYS } from "../../constants"
 
 export class DestroyedState extends IState {
   public getOwner(): any {
@@ -16,7 +17,7 @@ export class DestroyedState extends IState {
 
   public onLeave(stateKey: string): void {}
   public getStateKey(): string {
-    return 'destroyed_bullet';
+    return STATE_KEYS.BULLET.DESTROYED;
   }
   public getCoolDownTime(): number {
     return 0;

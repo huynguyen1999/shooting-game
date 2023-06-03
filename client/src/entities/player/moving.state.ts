@@ -53,7 +53,7 @@ export class MovingState extends IState {
 
     private checkCollision(newPosition: { x: number; y: number }) {
         const players = Client.getPlayers();
-        let isCollided = false;
+        const obstacles = Client.getObstacles();
         for (const player of players.values()) {
             const isSelf = player.client_id === this.owner.client_id;
             const isDead =
@@ -63,11 +63,17 @@ export class MovingState extends IState {
             const distance = getDistance(newPosition, player);
             const collisionDistance = this.owner.radius + player.radius;
             if (distance < collisionDistance) {
-                isCollided = true;
-                // player.onCollide();
+                return true;
             }
         }
-        return isCollided;
+        for (const obstacle of obstacles.values()) {
+            const distance = getDistance(newPosition, obstacle);
+            const collisionDistance = this.owner.radius + obstacle.radius;
+            if (distance < collisionDistance) {
+                return true;
+            }
+        }
+        return false;
     }
     move(direction: Direction, deltaTime: number) {
         let newPosition = {

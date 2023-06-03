@@ -2,6 +2,7 @@ import { IBullet, StateMachine } from "../../abstract";
 import { Client } from "../../client";
 import { STATE_KEYS } from "../../constants";
 import { getDistance } from "../../utils";
+import { Obstacle } from "../obstacle";
 import { Player } from "../player";
 import { DestroyedState } from "./destroyed.state";
 import { MovingState } from "./moving.state";
@@ -51,7 +52,16 @@ export class Bullet extends IBullet {
     }
 
     private handleCollision() {
-        const players = Client.getPlayers();
+        const obstacles = Client.getObstacles() as Map<string, Obstacle>;
+        for (const obstacle of obstacles.values()) {
+            const distance = getDistance(this, obstacle);
+            const collisionDistance = this.radius + obstacle.radius;
+            if (distance < collisionDistance) {
+                Client.removeBullet(this);
+                return;
+            }
+        }
+        const players = Client.getPlayers() as Map<string, Player>;
         players.forEach((player: Player) => {
             const isSelf = player.client_id === this.client_id;
             const isDead =
@@ -69,11 +79,12 @@ export class Bullet extends IBullet {
         this.x += this.vx * deltaTime * this.speed;
         this.y += this.vy * deltaTime * this.speed;
         this.handleCollision();
+        return this;
     }
     draw(context: CanvasRenderingContext2D) {
         context.beginPath();
         context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        context.fillStyle = "black";
+        context.fillStyle = this.color;
         context.fill();
     }
 

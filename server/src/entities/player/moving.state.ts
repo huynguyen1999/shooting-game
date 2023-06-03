@@ -1,7 +1,10 @@
+import { Player } from '.';
 import { IState } from '../../abstracts';
 import { Direction, STATE_KEYS } from '../../constants';
 import { GameManager } from '../../modules/game-manager/game-manager';
 import { getDistance } from '../../utils';
+import { Obstacle } from '../obstacle';
+import { PickUp } from '../pick-up';
 
 export class MovingState extends IState {
   public getOwner(): any {
@@ -49,8 +52,8 @@ export class MovingState extends IState {
   }
 
   private checkCollision(newPosition: { x: number; y: number }) {
-    const players = GameManager.getPlayers();
-    let isCollided = false;
+    const players = GameManager.getPlayers() as Map<string, Player>;
+    const obstacles = GameManager.getObstacles() as Map<string, Obstacle>;
     for (const player of players.values()) {
       const isSelf = player.client_id === this.owner.client_id;
       const isDead =
@@ -59,11 +62,28 @@ export class MovingState extends IState {
       const distance = getDistance(newPosition, player);
       const collisionDistance = this.owner.radius + player.radius;
       if (distance < collisionDistance) {
-        isCollided = true;
-        player.onCollide();
+        return true;
       }
     }
-    return isCollided;
+    for (const obstacle of obstacles.values()) {
+      const distance = getDistance(newPosition, obstacle);
+      const collisionDistance = this.owner.radius + obstacle.radius;
+      if (distance < collisionDistance) {
+        return true;
+      }
+    }
+    return false;
+  }
+  checkPickUpCollision() {
+    const pickUps = GameManager.getPickUps() as Map<string, PickUp>;
+    for (const pickUp of pickUps.values()) {
+      const distance = getDistance(this.owner, pickUp);
+      const collisionDistance = this.owner.radius + pickUp.radius;
+      if (distance < collisionDistance) {
+        pickUp.onPickedUp(this.owner);
+        return;
+      }
+    }
   }
   move(direction: Direction, deltaTime: number) {
     let newPosition = {
@@ -91,6 +111,7 @@ export class MovingState extends IState {
       this.owner.x = newPosition.x;
       this.owner.y = newPosition.y;
       this.owner.direction = direction;
+      this.checkPickUpCollision();
     } else {
       this.owner.changeState(STATE_KEYS.PLAYER.IDLE);
     }

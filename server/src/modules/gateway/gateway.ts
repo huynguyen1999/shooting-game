@@ -23,9 +23,11 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.setUpdateRate();
   }
   handleConnection(client: any, ...args: any[]) {
+    const obstacles = GameManager.getObstacles(true);
     this.server.emit(EVENTS.ENVIRONMENT_LOAD, {
       ...GAME_ENVIRONMENT,
       client_id: client.id,
+      obstacles,
     });
   }
   handleDisconnect(client: any) {

@@ -11,13 +11,15 @@ export class Player extends IPlayer {
   public name: string;
   public x: number;
   public y: number;
-  public state!: IState;
   public radius: number;
   public color: string;
   public speed: number;
   public state_machine!: StateMachine;
   public last_processed_command: number;
+  public bullet_speed: number;
   public hp: number;
+  public max_hp: number;
+  public damage: number = 1;
 
   constructor(
     clientId: string,
@@ -37,8 +39,10 @@ export class Player extends IPlayer {
     this.radius = radius;
     this.color = color;
     this.speed = speed;
+    this.bullet_speed = this.speed * 2;
     this.last_processed_command = 0;
     this.initializeStateMachine();
+    this.max_hp = hp;
     this.hp = hp;
   }
 

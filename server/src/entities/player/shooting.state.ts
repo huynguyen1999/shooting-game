@@ -35,13 +35,13 @@ export class ShootingState extends IState {
       this.owner.y,
       this.owner.radius / 3,
       this.owner.color,
-      this.owner.speed * 5,
+      this.owner.bullet_speed,
       vx,
       vy,
     );
     GameManager.addBullet(bullet);
   }
   public getCoolDownTime(): number {
-    return 200;
+    return 0;
   }
 }

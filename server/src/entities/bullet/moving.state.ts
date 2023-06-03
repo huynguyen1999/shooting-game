@@ -1,4 +1,5 @@
 import { IState } from '../../abstracts';
+import { STATE_KEYS } from '../../constants';
 
 export class MovingState extends IState {
   public getOwner(): any {
@@ -16,7 +17,7 @@ export class MovingState extends IState {
 
   public onLeave(stateKey: string): void {}
   public getStateKey(): string {
-    return 'moving_bullet';
+    return STATE_KEYS.BULLET.MOVING;
   }
   public getCoolDownTime(): number {
     return 0;

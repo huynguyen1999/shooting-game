@@ -1,4 +1,7 @@
+import { EnvironmentLoadDto } from "../dtos/environment-load.dto";
 import { Bullet } from "../entities/bullet";
+import { Obstacle } from "../entities/obstacle";
+import { PickUp } from "../entities/pick-up";
 import { Player } from "../entities/player";
 import { getDifference, linearInterpolation } from "../utils";
 import { InputHandler } from "./input-handler";
@@ -9,7 +12,8 @@ export class Client {
     public client_id!: string;
     public players: Map<string, Player>;
     public bullets: Map<string, Bullet>;
-
+    public obstacles: Map<string, Obstacle>;
+    public pick_ups: Map<string, PickUp>;
     public canvas: HTMLCanvasElement;
     public context: CanvasRenderingContext2D;
     public update_rate!: number;
@@ -17,9 +21,12 @@ export class Client {
     public input_handler!: InputHandler;
     public static instance: Client;
     public last_frame_time!: number;
+    public is_env_loaded: boolean = false;
     private constructor() {
         this.players = new Map<string, Player>();
         this.bullets = new Map<string, Bullet>();
+        this.obstacles = new Map<string, Obstacle>();
+        this.pick_ups = new Map<string, PickUp>();
         this.canvas = document.querySelector("canvas") as HTMLCanvasElement;
         this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
         this.input_handler = new InputHandler(this.canvas);
@@ -88,6 +95,29 @@ export class Client {
         destroyedBullets.forEach((bulletId: string) => {
             this.bullets.delete(bulletId);
         });
+    }
+    private removeDestroyedPickUps(backendPickUps: Record<string, any>) {
+        const destroyedPickUps = getDifference(
+            [...this.pick_ups.keys()],
+            Object.keys(backendPickUps),
+        );
+        destroyedPickUps.forEach((pickUpId: string) => {
+            this.pick_ups.delete(pickUpId);
+        });
+    }
+    public processAuthoritativePickUps(backendPickUps: Record<string, any>) {
+        this.removeDestroyedPickUps(backendPickUps);
+        for (const _id in backendPickUps) {
+            const backendPickUp = backendPickUps[_id];
+            if (!this.pick_ups.has(_id)) {
+                const newPickUp = PickUp.serialize(backendPickUp);
+                this.pick_ups.set(_id, newPickUp);
+            }
+            const clientPickUp = this.pick_ups.get(_id) as PickUp;
+            // synchronize
+            clientPickUp.x = backendPickUp.x;
+            clientPickUp.y = backendPickUp.y;
+        }
     }
     private syncWithBackendBullets(
         _id: string,
@@ -202,14 +232,42 @@ export class Client {
         }
     }
     public processServerMessages() {
+        // environment load
+        let envData;
+        if (!this.is_env_loaded && (envData = Network.getEnvData())) {
+            const {
+                canvas_height,
+                canvas_width,
+                canvas_styles,
+                client_id,
+                obstacles,
+            } = envData;
+            this.client_id = client_id;
+            this.canvas.width = canvas_width;
+            this.canvas.height = canvas_height;
+            for (const style in canvas_styles) {
+                // @ts-ignore
+                this.canvas.style[style] = canvas_styles[style];
+            }
+            for (const obstacleId in obstacles) {
+                const obstacle = Obstacle.serialize(obstacles[obstacleId]);
+                this.obstacles.set(obstacleId, obstacle);
+            }
+            this.is_env_loaded = true;
+        }
+        // game state update
         const serverMessages = Network.receiveServerMessages();
         if (!serverMessages?.length) {
             return;
         }
         while (serverMessages.length) {
             const message = serverMessages.shift();
-            const { players: backendPlayers, bullets: backendBullets } =
-                message;
+            const {
+                players: backendPlayers,
+                bullets: backendBullets,
+                pick_ups: backendPickUps,
+            } = message;
+            this.processAuthoritativePickUps(backendPickUps);
             this.processAuthoritativePlayers(backendPlayers);
             this.processAuthoritativeBullets(backendBullets);
         }
@@ -256,13 +314,19 @@ export class Client {
     }
     public renderWorld(deltaTime: number) {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.players.forEach((player: Player) => {
-            player.update(deltaTime);
-            player.draw(this.context);
-        });
-        this.bullets.forEach((bullet: Bullet) => {
-            bullet.update(deltaTime);
-            bullet.draw(this.context);
-        });
+        this.obstacles.forEach((obstacle: Obstacle) =>
+            obstacle.draw(this.context),
+        );
+        this.pick_ups.forEach((pickUp: PickUp) => pickUp.draw(this.context));
+        this.players.forEach((player: Player) =>
+            player.update(deltaTime).draw(this.context),
+        );
+        this.bullets.forEach((bullet: Bullet) =>
+            bullet.update(deltaTime).draw(this.context),
+        );
+    }
+    static getObstacles() {
+        const client = Client.getInstance();
+        return client.obstacles;
     }
 }

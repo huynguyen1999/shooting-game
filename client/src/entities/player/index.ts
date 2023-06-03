@@ -109,6 +109,7 @@ export class Player extends IPlayer {
     }
     update(deltaTime: number) {
         this.state_machine.update(deltaTime);
+        return this;
     }
     changeState(key: string, args: any = {}) {
         const currentState = this.state_machine.getCurrentStateKey();
