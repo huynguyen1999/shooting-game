@@ -1,6 +1,7 @@
 import { IPlayer, IState, StateMachine } from '../../abstracts';
 import { Direction, STATE_KEYS } from '../../constants';
 import { GameManager } from '../../modules/game-manager/game-manager';
+import { Bullet } from '../bullet';
 
 import { DeadState } from './dead.state';
 import { IdleState } from './idle.state';
@@ -19,7 +20,6 @@ export class Player extends IPlayer {
   public bullet_speed: number;
   public hp: number;
   public max_hp: number;
-  public damage: number = 1;
 
   constructor(
     clientId: string,
@@ -41,9 +41,9 @@ export class Player extends IPlayer {
     this.speed = speed;
     this.bullet_speed = this.speed * 2;
     this.last_processed_command = 0;
-    this.initializeStateMachine();
     this.max_hp = hp;
     this.hp = hp;
+    this.initializeStateMachine();
   }
 
   initializeStateMachine() {
@@ -70,8 +70,8 @@ export class Player extends IPlayer {
   update(deltaTime: number): void {
     this.state_machine.update(deltaTime);
   }
-  onHit() {
-    this.hp -= 1;
+  onHit(bullet: Bullet) {
+    this.hp -= bullet.damage;
     if (this.hp <= 0) {
       this.changeState(STATE_KEYS.PLAYER.DEAD);
       setTimeout(() => GameManager.removePlayer(this), 1000);

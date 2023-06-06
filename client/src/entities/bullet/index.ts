@@ -15,6 +15,7 @@ export class Bullet extends IBullet {
     public radius: number;
     public color: string;
     public speed: number;
+    public damage: number;
     public position_buffer: any[] = [];
     public vx: number;
     public vy: number;
@@ -26,6 +27,7 @@ export class Bullet extends IBullet {
         radius: number,
         color: string,
         speed: number,
+        damage: number,
         vx: number,
         vy: number,
     ) {
@@ -37,6 +39,7 @@ export class Bullet extends IBullet {
         this.radius = radius;
         this.color = color;
         this.speed = speed;
+        this.damage = damage;
         this.vx = vx;
         this.vy = vy;
         this.initiateStateMachine();
@@ -89,8 +92,30 @@ export class Bullet extends IBullet {
     }
 
     static serialize(bulletData: any) {
-        const { _id, client_id, x, y, radius, color, speed, vx, vy, state } =
-            bulletData;
-        return new Bullet(_id, client_id, x, y, radius, color, speed, vx, vy);
+        const {
+            _id,
+            client_id,
+            x,
+            y,
+            radius,
+            color,
+            speed,
+            damage,
+            vx,
+            vy,
+            state,
+        } = bulletData;
+        return new Bullet(
+            _id,
+            client_id,
+            x,
+            y,
+            radius,
+            color,
+            speed,
+            damage,
+            vx,
+            vy,
+        );
     }
 }

@@ -1,6 +1,11 @@
 import { Command } from "../abstract";
 import { Player } from "../entities/player";
-import { Direction, MoveCommand, ShootCommand } from "./commands";
+import {
+    ActivateSkillCommand,
+    Direction,
+    MoveCommand,
+    ShootCommand,
+} from "./commands";
 import { Network } from "./network";
 
 export class InputHandler {
@@ -9,6 +14,7 @@ export class InputHandler {
     private receiver!: Player;
     private commands: Command[];
     public unacknowledged_commands: Command[];
+    public mousePosition!: { x: number; y: number };
     constructor(private canvas: HTMLCanvasElement) {
         this.movement_key_map = {
             up: false,
@@ -22,6 +28,7 @@ export class InputHandler {
         addEventListener("keydown", this.onKeyDown.bind(this));
         addEventListener("keyup", this.onKeyUp.bind(this));
         this.canvas.addEventListener("click", this.onClick.bind(this));
+        this.canvas.addEventListener("mousemove", this.onMouseMove.bind(this));
     }
 
     setReceiver(receiver: Player) {
@@ -29,6 +36,9 @@ export class InputHandler {
         return this;
     }
     private onKeyDown(event: KeyboardEvent) {
+        if (!this.receiver) {
+            return;
+        }
         switch (event.key) {
             case "w":
                 this.movement_key_map.up = true;
@@ -42,11 +52,24 @@ export class InputHandler {
             case "a":
                 this.movement_key_map.left = true;
                 break;
+            case "q":
+                const activateSkillCommand = new ActivateSkillCommand(
+                    this.receiver,
+                    this.current_command_number++,
+                    this.mousePosition.x,
+                    this.mousePosition.y,
+                );
+                // console.log(activateSkillCommand);
+                activateSkillCommand.execute();
+                this.commands.push(activateSkillCommand);
             default:
                 break;
         }
     }
     private onKeyUp(event: KeyboardEvent) {
+        if (!this.receiver) {
+            return;
+        }
         switch (event.key) {
             case "w":
                 this.movement_key_map.up = false;
@@ -76,6 +99,13 @@ export class InputHandler {
         );
         shootCommand.execute();
         this.commands.push(shootCommand);
+    }
+
+    private onMouseMove(event: MouseEvent) {
+        this.mousePosition = {
+            x: event.offsetX,
+            y: event.offsetY,
+        };
     }
 
     move(direction: Direction, deltaTime: number) {

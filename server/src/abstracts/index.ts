@@ -4,3 +4,4 @@ export * from './command';
 export * from './bullet';
 export * from './obstacle';
 export * from './pick-up';
+export * from './skill';

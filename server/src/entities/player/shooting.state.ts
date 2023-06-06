@@ -36,6 +36,7 @@ export class ShootingState extends IState {
       this.owner.radius / 3,
       this.owner.color,
       this.owner.bullet_speed,
+      this.owner.damage,
       vx,
       vy,
     );

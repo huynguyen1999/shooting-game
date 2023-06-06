@@ -1,8 +1,10 @@
+import { STATE_KEYS } from "../constants";
 import { EnvironmentLoadDto } from "../dtos/environment-load.dto";
 import { Bullet } from "../entities/bullet";
 import { Obstacle } from "../entities/obstacle";
 import { PickUp } from "../entities/pick-up";
 import { Player } from "../entities/player";
+import { Skill } from "../entities/skill";
 import { getDifference, linearInterpolation } from "../utils";
 import { InputHandler } from "./input-handler";
 import { Network } from "./network";
@@ -169,7 +171,14 @@ export class Client {
             state,
             hp,
             last_processed_command,
+            skill,
         } = backendPlayer;
+        const backendSkill = new Skill(
+            skill._id,
+            skill.x,
+            skill.y,
+            skill.radius,
+        );
         if (!this.players.has(clientId)) {
             const newPlayer = new Player(
                 client_id,
@@ -180,6 +189,7 @@ export class Client {
                 color,
                 speed,
                 hp,
+                backendSkill,
             );
             this.players.set(clientId, newPlayer);
             // set receiver as the current client
@@ -192,7 +202,13 @@ export class Client {
         clientPlayer.y = y;
         clientPlayer.hp = hp;
         clientPlayer.last_processed_command = last_processed_command;
+        clientPlayer.skill._id = skill._id;
         clientPlayer.state_machine.changeState(state);
+        clientPlayer.skill.x = skill.x;
+        clientPlayer.skill.y = skill.y;
+        clientPlayer.skill.radius = skill.radius;
+        clientPlayer.skill.angle = skill.angle || 0;
+        clientPlayer.skill.state_machine.changeState(skill.state);
         return clientPlayer;
     }
     private processAuthoritativePlayers(backendPlayers: Record<string, any>) {
