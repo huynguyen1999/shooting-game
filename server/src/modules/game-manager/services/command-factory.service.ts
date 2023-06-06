@@ -23,11 +23,14 @@ export class CommandFactory {
           direction,
           delta_time,
         );
-      case COMMAND_KEYS.USER_INPUT.SHOOT:
+      case COMMAND_KEYS.USER_INPUT.SHOOT: {
         const { dx, dy } = command;
         return new ShootCommand(_id, receiver, command_number, dx, dy);
-      case COMMAND_KEYS.USER_INPUT.ACTIVATE_SKILL:
-        return new ActivateSkillCommand(_id, receiver, command_number);
+      }
+      case COMMAND_KEYS.USER_INPUT.ACTIVATE_SKILL: {
+        const { dx, dy } = command;
+        return new ActivateSkillCommand(_id, receiver, command_number, dx, dy);
+      }
       case COMMAND_KEYS.BUFF.BULLET_SPEED_UP:
         return new BulletSpeedUpCommand(_id, receiver, command_number);
       case COMMAND_KEYS.BUFF.SPEED_UP:

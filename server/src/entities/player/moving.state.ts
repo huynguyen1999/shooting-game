@@ -14,7 +14,10 @@ export class MovingState extends IState {
     this.owner = owner;
     return this;
   }
-  public onReEnter(args: any): void {}
+  public onReEnter(args: any): void {
+    // same as moving
+    this.onEnter(args);
+  }
 
   public onEnter(args: any): void {
     const { direction, deltaTime } = args;

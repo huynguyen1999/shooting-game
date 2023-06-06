@@ -43,7 +43,7 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
       const { player_name: playerName } = data;
       GameManager.handlePlayerJoin(client.id, playerName);
     } catch (exception) {
-      console.log('player input exception: ', exception);
+      // console.log('player input exception: ', exception);
     }
   }
 
@@ -59,7 +59,7 @@ export class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
       const gameState = GameManager.update();
       this.server.emit(EVENTS.GAME_UPDATE, gameState);
     } catch (exception) {
-      console.log('update gateway error: ', exception);
+      // console.log('update gateway error: ', exception);
     }
   }
 

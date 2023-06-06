@@ -65,12 +65,6 @@ export class StateMachine {
   public removeState(key: string): void {
     this.states.delete(key);
   }
-
-  public switchToDefault() {
-    this.current_state = this.default_state;
-    this.last_state_change_time = Date.now();
-    this.current_state.setOwner(this.owner);
-  }
   private forceChangeState(newState: IState, args: any = {}) {
     if (this.current_state) {
       this.current_state.onLeave(newState.getStateKey());
@@ -96,11 +90,14 @@ export class StateMachine {
     const currentTime = Date.now();
     const elapsedTime = currentTime - this.last_state_change_time;
     const coolDownTime = this.current_state?.getCoolDownTime();
+    const timeLeft = coolDownTime - elapsedTime;
 
     if (coolDownTime && elapsedTime < coolDownTime) {
-      console.log(
-        `cooldown in progress, cannot switch to ${newState.getStateKey()} yet!`,
-      );
+      // console.log(
+      //   `${
+      //     this.owner.constructor.name
+      //   }: ${this.current_state.getStateKey()}'s in progress, ${timeLeft}ms left then you can switch to ${newState.getStateKey()} yet!`,
+      // );
       return;
     }
     if (this.is_changing_state) {
@@ -108,14 +105,16 @@ export class StateMachine {
       return;
     }
     if (key === this.getCurrentStateKey()) {
-      this.current_state.onEnter(args);
+      this.current_state.onReEnter(args);
       return;
     }
     this.is_changing_state = true;
     if (this.current_state) {
       this.current_state.onLeave(newState.getStateKey());
     }
-    console.log('new state: ', newState.getStateKey());
+    // console.log(
+    //   `${this.owner.constructor.name} new state: ${newState.getStateKey()}`,
+    // );
     this.current_state = newState;
     this.last_state_change_time = Date.now();
     this.current_state.setOwner(this.owner);
@@ -124,7 +123,7 @@ export class StateMachine {
   }
 
   public update(deltaTime: number): void {
-    if (this.current_state.getCoolDownTime() !== 0) {
+    if (this.current_state.getCoolDownTime() !== 0 && this.default_state) {
       this.changeState(this.default_state.getStateKey());
     }
     if (!this.is_changing_state && this.change_state_queue.length > 0) {
