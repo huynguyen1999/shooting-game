@@ -64,7 +64,7 @@ const keyHandler = (e: KeyboardEvent) => {
     } else if (e.key == "a") {
         player2.key_left = e.type == "keydown";
     } else {
-        console.log(e);
+        // console.log(e);
     }
 };
 document.body.onkeydown = keyHandler;

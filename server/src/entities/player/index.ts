@@ -2,6 +2,8 @@ import { IPlayer, IState, StateMachine } from '../../abstracts';
 import { Direction, STATE_KEYS } from '../../constants';
 import { GameManager } from '../../modules/game-manager/game-manager';
 import { Bullet } from '../bullet';
+import { Skill } from '../skill';
+import { ActivatingSkillState } from './activating-skill.state';
 
 import { DeadState } from './dead.state';
 import { IdleState } from './idle.state';
@@ -20,6 +22,8 @@ export class Player extends IPlayer {
   public bullet_speed: number;
   public hp: number;
   public max_hp: number;
+  public skill: Skill;
+  public damage: number = 1;
 
   constructor(
     clientId: string,
@@ -43,22 +47,23 @@ export class Player extends IPlayer {
     this.last_processed_command = 0;
     this.max_hp = hp;
     this.hp = hp;
+    this.skill = new Skill(this.x, this.y, 100);
     this.initializeStateMachine();
   }
 
   initializeStateMachine() {
     this.state_machine = new StateMachine(this);
-    const idleState = new IdleState();
-    const movingState = new MovingState();
-    const deadState = new DeadState();
-    const shootingState = new ShootingState();
     this.state_machine
-      .registerState(idleState.getStateKey(), idleState)
-      .registerState(movingState.getStateKey(), movingState)
-      .registerState(deadState.getStateKey(), deadState)
-      .registerState(shootingState.getStateKey(), shootingState)
-      .setDefaultState(idleState.getStateKey())
-      .changeState(idleState.getStateKey());
+      .registerState(STATE_KEYS.PLAYER.IDLE, new IdleState())
+      .registerState(STATE_KEYS.PLAYER.MOVING, new MovingState())
+      .registerState(STATE_KEYS.PLAYER.SHOOTING, new ShootingState())
+      .registerState(
+        STATE_KEYS.PLAYER.ACTIVATING_SKILL,
+        new ActivatingSkillState(),
+      )
+      .registerState(STATE_KEYS.PLAYER.DEAD, new DeadState())
+      .setDefaultState(STATE_KEYS.PLAYER.IDLE)
+      .changeState(STATE_KEYS.PLAYER.IDLE);
   }
   move(direction: Direction, deltaTime: number) {
     this.changeState(STATE_KEYS.PLAYER.MOVING, { direction, deltaTime });
@@ -69,9 +74,21 @@ export class Player extends IPlayer {
   }
   update(deltaTime: number): void {
     this.state_machine.update(deltaTime);
+    this.skill.update(deltaTime);
+  }
+  activateSkill(angle: number) {
+    this.skill.activate(this, angle);
   }
   onHit(bullet: Bullet) {
     this.hp -= bullet.damage;
+    if (this.hp <= 0) {
+      this.changeState(STATE_KEYS.PLAYER.DEAD);
+      setTimeout(() => GameManager.removePlayer(this), 1000);
+      this.hp = 0;
+    }
+  }
+  onSkillHit(skill: Skill) {
+    this.hp -= 5;
     if (this.hp <= 0) {
       this.changeState(STATE_KEYS.PLAYER.DEAD);
       setTimeout(() => GameManager.removePlayer(this), 1000);
@@ -93,6 +110,7 @@ export class Player extends IPlayer {
       state: this.state_machine.getCurrentStateKey(),
       last_processed_command: this.last_processed_command,
       hp: this.hp,
+      skill: this.skill.deserialize(),
     };
   }
 
@@ -100,7 +118,7 @@ export class Player extends IPlayer {
     const currentState = this.state_machine.getCurrentStateKey();
     const isAlreadyDead = currentState === STATE_KEYS.PLAYER.DEAD;
     if (isAlreadyDead) {
-      console.log('Player already dead');
+      // console.log('Player already dead');
       return;
     }
     this.state_machine.changeState(key, args);

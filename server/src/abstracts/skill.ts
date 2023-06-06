@@ -1,3 +1,5 @@
+import { IPlayer } from './player';
+
 export abstract class ISkill {
-  abstract activate(angle: number);
+  abstract activate(player: IPlayer, angle: number);
 }

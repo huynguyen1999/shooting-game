@@ -29,10 +29,16 @@ export const STATE_KEYS = {
     IDLE: 'idle_player',
     MOVING: 'moving_player',
     SHOOTING: 'shooting_player',
+    ACTIVATING_SKILL: 'activating_skill_player',
   },
   BULLET: {
     MOVING: 'moving_bullet',
     DESTROYED: 'destroyed_bullet',
+  },
+  SKILL: {
+    ON_COOL_DOWN: 'on_cool_down_skill',
+    READY: 'ready_skill',
+    ACTIVATING: 'activating_skill',
   },
 };
 

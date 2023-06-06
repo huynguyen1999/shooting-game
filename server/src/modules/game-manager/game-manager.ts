@@ -122,7 +122,7 @@ export class GameManager {
       // get game state
       return gameManager.getGameState();
     } catch (e) {
-      console.log('wtf: ', e);
+      // console.log('wtf: ', e);
     }
   }
   static addBullet(bullet: Bullet) {
