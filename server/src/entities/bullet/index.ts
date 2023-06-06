@@ -20,6 +20,7 @@ export class Bullet extends IBullet {
   public position_buffer: any[] = [];
   public vx: number;
   public vy: number;
+  public damage: number;
   constructor(
     _id: string,
     clientId: string,
@@ -28,6 +29,7 @@ export class Bullet extends IBullet {
     radius: number,
     color: string,
     speed: number,
+    damage: number,
     vx: number,
     vy: number,
   ) {
@@ -39,6 +41,7 @@ export class Bullet extends IBullet {
     this.radius = radius;
     this.color = color;
     this.speed = speed;
+    this.damage = damage;
     this.vx = vx;
     this.vy = vy;
     this.initiateStateMachine();
@@ -88,7 +91,7 @@ export class Bullet extends IBullet {
       if (distance <= collisionDistance) {
         GameManager.removeBullet(this);
         // notify player on hit
-        player.onHit();
+        player.onHit(this);
       }
     });
   }
@@ -108,6 +111,7 @@ export class Bullet extends IBullet {
       radius: this.radius,
       color: this.color,
       speed: this.speed,
+      damage: this.damage,
       vx: this.vx,
       vy: this.vy,
       state: this.state_machine.getCurrentStateKey(),

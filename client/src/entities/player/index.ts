@@ -8,6 +8,8 @@ import { IdleState } from "./idle.state";
 import { MovingState } from "./moving.state";
 import { v4 as uuid } from "uuid";
 import { ShootingState } from "./shooting.state";
+import { ActivatingSkillState } from "./activating-skill.state";
+import { Skill } from "../skill";
 
 export class Player extends IPlayer {
     public client_id: string;
@@ -18,10 +20,12 @@ export class Player extends IPlayer {
     public radius: number;
     public color: string;
     public speed: number;
+    public bullet_speed: number;
     public last_processed_command!: number;
     public position_buffer: any[] = [];
     public hp: number;
     public max_hp: number;
+    public skill!: Skill;
     constructor(
         clientId: string,
         name: string,
@@ -31,6 +35,7 @@ export class Player extends IPlayer {
         color: string,
         speed: number,
         hp: number,
+        skill: Skill,
     ) {
         super();
         this.client_id = clientId;
@@ -40,23 +45,25 @@ export class Player extends IPlayer {
         this.radius = radius;
         this.color = color;
         this.speed = speed;
+        this.bullet_speed = this.speed * 2;
         this.hp = hp;
         this.max_hp = hp;
+        this.skill = skill;
         this.initiateStateMachine();
     }
     initiateStateMachine() {
         this.state_machine = new StateMachine(this);
-        const idleState = new IdleState();
-        const movingState = new MovingState();
-        const deadState = new DeadState();
-        const shootingState = new ShootingState();
         this.state_machine
-            .registerState(idleState.getStateKey(), idleState)
-            .registerState(movingState.getStateKey(), movingState)
-            .registerState(deadState.getStateKey(), deadState)
-            .registerState(shootingState.getStateKey(), shootingState)
-            .setDefaultState(idleState.getStateKey())
-            .changeState(idleState.getStateKey());
+            .registerState(STATE_KEYS.PLAYER.IDLE, new IdleState())
+            .registerState(STATE_KEYS.PLAYER.MOVING, new MovingState())
+            .registerState(STATE_KEYS.PLAYER.SHOOTING, new ShootingState())
+            .registerState(
+                STATE_KEYS.PLAYER.ACTIVATING_SKILL,
+                new ActivatingSkillState(),
+            )
+            .registerState(STATE_KEYS.PLAYER.DEAD, new DeadState())
+            .setDefaultState(STATE_KEYS.PLAYER.IDLE)
+            .changeState(STATE_KEYS.PLAYER.IDLE);
     }
 
     move(direction: Direction, deltaTime: number) {
@@ -73,6 +80,8 @@ export class Player extends IPlayer {
     onCollide() {}
 
     draw(context: CanvasRenderingContext2D): void {
+        this.skill.draw(context);
+        //
         context.globalAlpha = 1;
         const state = this.state_machine.getCurrentState() as IState;
         state?.draw(context);
@@ -80,7 +89,8 @@ export class Player extends IPlayer {
         // draw circle
         context.beginPath();
         context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        (context.fillStyle = this.color), context.fill();
+        context.fillStyle = this.color;
+        context.fill();
         // draw name
         context.textAlign = "center";
         context.font = `${Math.floor(this.radius / 2)}px Arial";`;
@@ -104,18 +114,36 @@ export class Player extends IPlayer {
     }
 
     static serialize(backendPlayer: any) {
-        const { _id, name, x, y, radius, color, speed, hp } = backendPlayer;
-        return new Player(_id, name, x, y, radius, color, speed, hp);
+        const { _id, name, x, y, radius, color, speed, hp, skill } =
+            backendPlayer;
+        const backendSkill = new Skill(
+            skill._id,
+            skill.x,
+            skill.y,
+            skill.radius,
+        );
+        return new Player(
+            _id,
+            name,
+            x,
+            y,
+            radius,
+            color,
+            speed,
+            hp,
+            backendSkill,
+        );
     }
     update(deltaTime: number) {
         this.state_machine.update(deltaTime);
+        this.skill.state_machine.update(deltaTime);
         return this;
     }
     changeState(key: string, args: any = {}) {
         const currentState = this.state_machine.getCurrentStateKey();
         const isAlreadyDead = currentState === STATE_KEYS.PLAYER.DEAD;
         if (isAlreadyDead) {
-            console.log("Player already dead");
+            // console.log("Player already dead");
             return;
         }
         this.state_machine.changeState(key, args);

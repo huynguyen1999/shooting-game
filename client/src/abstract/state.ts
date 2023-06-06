@@ -17,22 +17,25 @@ export abstract class IState {
     public abstract onLeave(stateKey: string): void;
 
     public abstract getStateKey(): string;
-    public abstract draw(context: CanvasRenderingContext2D): void;
-
     public abstract getCoolDownTime(): number;
+    public abstract draw(context: CanvasRenderingContext2D, ...args: any): void;
+
+    public isForced() {
+        return false;
+    }
 }
 
 export class StateMachine {
     private static readonly InvalidState: string = "Invalid";
     private states!: Map<string, IState>;
     private current_state: IState | null = null;
-    private default_state: IState | null = null;
     private owner: any;
 
     private change_state_queue: IState[] = [];
     private is_changing_state = false;
-
     private last_state_change_time: number;
+    private default_state: IState | null = null;
+
     constructor(owner: any) {
         this.owner = owner;
         this.states = new Map<string, IState>();
@@ -63,10 +66,15 @@ export class StateMachine {
     public removeState(key: string): void {
         this.states.delete(key);
     }
-    public switchToDefault() {
-        this.current_state = this.default_state;
-        this.last_state_change_time = Date.now();
-        this.current_state?.setOwner(this.owner);
+    private forceChangeState(newState: IState, args: any = {}) {
+        if (this.current_state) {
+            this.current_state.onLeave(newState.getStateKey());
+        }
+        this.current_state = newState;
+        this.current_state.setOwner(this.owner);
+        this.current_state.onEnter(args);
+        this.change_state_queue = [];
+        this.is_changing_state = false;
     }
     public changeState(key: string, args: any = {}): void {
         const newState: IState | undefined = this.states.get(key);
@@ -74,13 +82,23 @@ export class StateMachine {
             console.error(`Unregistered state type: ${key}`);
             return;
         }
+
+        if (newState.isForced()) {
+            this.forceChangeState(newState, args);
+            return;
+        }
+        // if state has cooldown
         const currentTime = Date.now();
         const elapsedTime = currentTime - this.last_state_change_time;
-        const coolDownTime = this.current_state?.getCoolDownTime();
+        const coolDownTime = this.current_state?.getCoolDownTime() as number;
+        const timeLeft = coolDownTime - elapsedTime;
+
         if (coolDownTime && elapsedTime < coolDownTime) {
-            console.log(
-                `cooldown in progress, cannot switch to ${newState.getStateKey()} yet!`,
-            );
+            // console.log(
+            //     `${
+            //         this.owner.constructor.name
+            //     }: ${this.current_state?.getStateKey()}'s in progress, ${timeLeft}ms left then you can switch to ${newState.getStateKey()} yet!`,
+            // );
             return;
         }
         if (this.is_changing_state) {
@@ -88,14 +106,18 @@ export class StateMachine {
             return;
         }
         if (key === this.getCurrentStateKey()) {
-            this.current_state?.onEnter(args);
+            this.current_state?.onReEnter(args);
             return;
         }
         this.is_changing_state = true;
         if (this.current_state) {
             this.current_state.onLeave(newState.getStateKey());
         }
-
+        // console.log(
+        //     `${
+        //         this.owner.constructor.name
+        //     } new state: ${newState.getStateKey()}`,
+        // );
         this.current_state = newState;
         this.last_state_change_time = Date.now();
         this.current_state.setOwner(this.owner);
@@ -104,28 +126,30 @@ export class StateMachine {
     }
 
     public update(deltaTime: number): void {
-        if (this.current_state?.getCoolDownTime() !== 0) {
-            this.switchToDefault();
+        if (this.current_state?.getCoolDownTime() !== 0 && this.default_state) {
+            this.changeState(this.default_state.getStateKey());
         }
         if (!this.is_changing_state && this.change_state_queue.length > 0) {
             const pendingState = this.change_state_queue.shift() as IState;
             this.changeState(pendingState.getStateKey());
             return;
         }
+
         if (this.current_state && this.current_state.onUpdate) {
             this.current_state.onUpdate(deltaTime);
         }
     }
 
-    public getCurrentState(): IState | null {
-        return this.current_state;
-    }
     public getCurrentStateKey(): string {
         if (this.current_state) {
             return this.current_state.getStateKey();
         }
         return StateMachine.InvalidState;
     }
+    public getCurrentState(): IState | null {
+        return this.current_state;
+    }
+
     public clear(): void {
         if (this.current_state) {
             this.current_state.onLeave(StateMachine.InvalidState);
