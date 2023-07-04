@@ -73,9 +73,9 @@ export class Client {
         const deltaTime = (now - lastFrameTime) / 1000;
         this.last_frame_time = now;
         this.processServerMessages();
-        const renderTimestamp = now - 1000 / 20;
+        const renderTimestamp = now - 1000 / 50;
         this.input_handler.update(deltaTime);
-        //
+        // renderTimestamp is a point in the past, which is before the last frame timestamp, usually equal to Date.now() - frameTime
         this.interpolatePlayers(renderTimestamp);
         this.interpolateBullets(renderTimestamp);
         this.renderWorld(deltaTime);
