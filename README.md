@@ -12,6 +12,7 @@ This is a simple 2D canvas game built with Javascript for client and NodeJS for 
     - Run client: `cd /client && yarn start`
     - Run server: `cd /server && nest start --watch`
 6. Parse the domain `localhost:8080` and open the game in your browser to play.
+   
 ## How to play
 
 - Controls:
@@ -44,7 +45,7 @@ This is a simple 2D canvas game built with Javascript for client and NodeJS for 
     - Entity interpolation.
 ## Demo
 
-[Gameplay Video]()
+https://github.com/huynguyen1999/shooting-game/assets/46386624/a565e3a7-3616-4ea9-8891-ba0948d4d3eb
 
 ## Contributing
 
