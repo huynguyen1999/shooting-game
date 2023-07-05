@@ -80,7 +80,9 @@ export class Player extends IPlayer {
     onCollide() {}
 
     draw(context: CanvasRenderingContext2D): void {
-        this.skill.draw(context);
+        if (this.client_id === Client.getInstance().client_id){
+            this.skill.draw(context);
+        }
         //
         context.globalAlpha = 1;
         const state = this.state_machine.getCurrentState() as IState;
